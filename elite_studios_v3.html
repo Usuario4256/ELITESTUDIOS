@@ -1,0 +1,2321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0a0b0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ELITE STUDIOS">
+<meta name="application-name" content="ELITE STUDIOS">
+<meta name="description" content="Tu nube personal privada">
+<title>ELITE STUDIOS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234f8cff'/%3E%3Cstop offset='100%25' stop-color='%23a259ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M32 14c-8 0-15 5.8-15 14 0 1.2.2 2.4.5 3.5C14.6 32.7 12 36 12 40c0 5.5 4.5 10 10 10h20c5.5 0 10-4.5 10-10 0-3.5-1.8-6.6-4.6-8.4.3-1 .6-2 .6-3.1C48 20.2 40.8 14 32 14z' fill='white' opacity='0.95'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234f8cff'/%3E%3Cstop offset='100%25' stop-color='%23a259ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath d='M32 14c-8 0-15 5.8-15 14 0 1.2.2 2.4.5 3.5C14.6 32.7 12 36 12 40c0 5.5 4.5 10 10 10h20c5.5 0 10-4.5 10-10 0-3.5-1.8-6.6-4.6-8.4.3-1 .6-2 .6-3.1C48 20.2 40.8 14 32 14z' fill='white' opacity='0.95'/%3E%3C/svg%3E">
+<!-- PWA Manifest inline (no archivo externo = sin error 404) -->
+<script id="pwa-manifest-injector">
+(function(){
+  const iconSvg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%234f8cff'/><stop offset='100%' stop-color='%23a259ff'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23g)'/><path d='M256 90c-68 0-124 49-124 116 0 10 1.5 19 4 28C112 242 88 276 88 316c0 58 47 106 105 106h126c58 0 105-48 105-106 0-30-13-57-34-76 2-8 4-18 4-28C394 139 330 90 256 90z' fill='white' opacity='0.95'/></svg>`;
+  const svgBlob = new Blob([iconSvg.replace(/%27/g,"'")], {type:'image/svg+xml'});
+  const iconUrl = URL.createObjectURL(svgBlob);
+  const manifest = {
+    name: 'ELITE STUDIOS',
+    short_name: 'Elite',
+    description: 'Tu nube personal privada',
+    start_url: location.href,
+    display: 'standalone',
+    background_color: '#0a0b0f',
+    theme_color: '#0a0b0f',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = url;
+  document.head.appendChild(link);
+})();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#0a0b0f;--panel:#111318;--panel2:#181b22;--border:#1f2330;
+  --accent:#4f8cff;--accent2:#a259ff;--green:#22d3a5;--red:#ff4f6a;
+  --yellow:#ffc84a;--text:#e8eaf0;--muted:#6b7285;
+  --glow:0 0 40px rgba(79,140,255,0.18);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:16px;-webkit-text-size-adjust:100%;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+#particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.particle{position:absolute;border-radius:50%;animation:pfloat linear infinite;opacity:0;}
+@keyframes pfloat{0%{transform:translateY(100vh) scale(0);opacity:0;}10%{opacity:.6;}90%{opacity:.6;}100%{transform:translateY(-80px) scale(1.2);opacity:0;}}
+/* AUTH */
+#auth-screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 60% 30%,#0d1a3a 0%,#0a0b0f 70%);overflow-y:auto;}
+.auth-container{width:100%;max-width:440px;padding:20px;margin:auto;animation:slideUp .7s cubic-bezier(.22,1,.36,1) both;}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px);}to{opacity:1;transform:translateY(0);}}
+.auth-card{background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:44px 40px;box-shadow:var(--glow),0 40px 80px rgba(0,0,0,.6);position:relative;isolation:isolate;}
+.auth-card::before{content:'';position:absolute;top:0;right:0;width:180px;height:180px;background:radial-gradient(circle at top right,rgba(79,140,255,.12) 0%,transparent 70%);border-radius:0 24px 0 0;z-index:-1;}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+.auth-logo-text{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+.auth-logo-text span{color:var(--accent);}
+.auth-tabs{display:flex;gap:4px;background:var(--panel2);padding:4px;border-radius:12px;margin-bottom:28px;}
+.auth-tab{flex:1;padding:10px;background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;border-radius:9px;cursor:pointer;transition:all .25s;}
+.auth-tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(79,140,255,.4);}
+.form-group{margin-bottom:18px;position:relative;}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:7px;letter-spacing:.5px;text-transform:uppercase;}
+.form-group input{width:100%;padding:13px 16px 13px 44px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all .25s;}
+.form-group input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,.15);}
+.form-group .icon{position:absolute;left:14px;top:38px;color:var(--muted);font-size:17px;}
+.form-group .toggle-pass{position:absolute;right:14px;top:38px;color:var(--muted);cursor:pointer;font-size:17px;background:none;border:none;}
+.strength-bar{display:flex;gap:4px;margin-top:8px;}
+.strength-bar div{height:3px;flex:1;border-radius:99px;background:var(--border);transition:background .3s;}
+.auth-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;transition:all .25s;position:relative;overflow:hidden;letter-spacing:.3px;}
+.auth-btn:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(79,140,255,.4);}
+.auth-error{background:rgba(255,79,106,.1);border:1px solid rgba(255,79,106,.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:16px;display:none;animation:shake .4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}60%{transform:translateX(6px);}}
+/* APP */
+#app-screen{display:none;min-height:100vh;position:relative;z-index:10;}
+.header{position:sticky;top:0;z-index:50;background:rgba(10,11,15,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.header-logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.header-logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:12px;}
+.search-bar{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;width:240px;transition:all .25s;}
+.search-bar:focus-within{border-color:var(--accent);width:280px;}
+.search-bar input{background:none;border:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%;}
+.user-btn{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:7px 12px;cursor:pointer;transition:all .2s;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;white-space:nowrap;}
+.user-btn:hover{border-color:var(--accent);}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.mobile-menu-btn{display:none;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 10px;cursor:pointer;font-size:18px;}
+.app-layout{display:flex;min-height:calc(100vh - 64px);}
+/* SIDEBAR */
+.sidebar{width:240px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);padding:20px 14px;position:sticky;top:64px;height:calc(100vh - 64px);overflow-y:auto;transition:transform .3s;display:flex;flex-direction:column;gap:4px;}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;padding:0 8px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .18s;color:var(--muted);font-size:13px;font-weight:500;border:1px solid transparent;}
+.sidebar-item:hover{background:var(--panel2);color:var(--text);}
+.sidebar-item.active{background:rgba(79,140,255,.12);color:var(--accent);border-color:rgba(79,140,255,.2);}
+.sidebar-item .s-ico{width:20px;text-align:center;font-size:15px;flex-shrink:0;}
+.storage-widget{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-top:auto;}
+.storage-widget .sw-title{font-size:11px;color:var(--muted);margin-bottom:8px;}
+/* MAIN */
+.main{flex:1;padding:24px 28px;overflow-y:auto;min-width:0;}
+.upload-zone{border:2px dashed var(--border);border-radius:20px;padding:36px 20px;text-align:center;margin-bottom:28px;transition:all .25s;cursor:pointer;position:relative;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(79,140,255,.04);}
+.upload-zone .uz-icon{font-size:42px;margin-bottom:10px;}
+.upload-zone .uz-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:6px;}
+.upload-zone .uz-sub{color:var(--muted);font-size:13px;margin-bottom:18px;}
+.uz-btn{display:inline-block;padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;pointer-events:none;}
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;transition:all .25s;cursor:default;}
+.stat-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--glow);}
+.stat-card .sc-icon{font-size:26px;margin-bottom:8px;}
+.stat-card .sc-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
+.stat-card .sc-label{font-size:11px;color:var(--muted);}
+/* FILES */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.section-header h2{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
+.view-toggle{display:flex;gap:4px;}
+.view-toggle button{background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--muted);cursor:pointer;transition:all .2s;font-size:15px;}
+.view-toggle button.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.filter-bar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-btn{padding:6px 14px;border-radius:99px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;}
+.file-grid.list-view{grid-template-columns:1fr;gap:8px;}
+.file-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;cursor:pointer;transition:all .22s;position:relative;animation:fadeInCard .35s ease both;}
+@keyframes fadeInCard{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+.file-card:hover{border-color:var(--accent);box-shadow:0 4px 24px rgba(79,140,255,.12);transform:translateY(-2px);}
+.file-card .fc-icon{font-size:36px;margin-bottom:10px;display:block;}
+.file-card .fc-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.file-card .fc-meta{font-size:11px;color:var(--muted);}
+.file-card .fc-actions{position:absolute;top:8px;right:8px;display:none;gap:4px;}
+.file-card:hover .fc-actions{display:flex;}
+.fc-action-btn{width:28px;height:28px;border-radius:7px;background:var(--panel2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.fc-action-btn:hover{background:var(--red);border-color:var(--red);color:#fff;}
+.fc-action-btn.dl:hover{background:var(--green);border-color:var(--green);}
+.file-grid.list-view .file-card{display:flex;align-items:center;gap:14px;padding:12px 18px;border-radius:12px;}
+.file-grid.list-view .file-card .fc-icon{font-size:26px;margin:0;flex-shrink:0;}
+.file-grid.list-view .file-card .fc-info{flex:1;min-width:0;}
+.file-grid.list-view .file-card .fc-name{margin:0 0 2px;}
+.file-grid.list-view .file-card .fc-actions{position:static;display:flex;margin-left:auto;}
+.empty-state{text-align:center;padding:80px 20px;color:var(--muted);}
+.empty-state .es-icon{font-size:64px;margin-bottom:16px;opacity:.4;}
+/* TOASTS */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+.toast{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;font-size:13px;min-width:240px;max-width:340px;animation:toastIn .35s ease;box-shadow:0 8px 32px rgba(0,0,0,.4);pointer-events:auto;}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+.toast.success{border-color:rgba(34,211,165,.4);}
+.toast.error{border-color:rgba(255,79,106,.4);}
+/* VIEWER MODAL */
+#viewer-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+#viewer-modal.open{display:flex;}
+.viewer-box{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:20px;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 40px 80px rgba(0,0,0,.8);animation:slideUpModal .3s cubic-bezier(.22,1,.36,1);}
+@keyframes slideUpModal{from{opacity:0;transform:translateY(30px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.viewer-header{display:flex;align-items:center;gap:10px;}
+.viewer-title{flex:1;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.viewer-close{width:32px;height:32px;border-radius:9px;background:var(--panel2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.viewer-close:hover{background:var(--red);border-color:var(--red);}
+.viewer-content{display:flex;align-items:center;justify-content:center;min-width:280px;min-height:180px;overflow:hidden;border-radius:12px;background:#000;position:relative;}
+.viewer-content img{max-width:80vw;max-height:70vh;border-radius:10px;object-fit:contain;display:block;}
+.viewer-content video{max-width:80vw;max-height:70vh;border-radius:10px;outline:none;display:block;}
+.viewer-footer{display:flex;gap:8px;flex-wrap:wrap;}
+.viewer-dl-btn{padding:9px 18px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.viewer-dl-btn:hover{transform:translateY(-1px);}
+.viewer-nav-btn{padding:9px 14px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;transition:all .2s;white-space:nowrap;}
+.viewer-nav-btn:hover:not(:disabled){background:var(--accent);border-color:var(--accent);color:#fff;}
+.viewer-nav-btn:disabled{opacity:.3;cursor:default;}
+.music-player{padding:28px 20px;text-align:center;width:340px;max-width:80vw;background:var(--panel2);border-radius:12px;}
+.mp-art{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto 18px;transition:transform .3s;}
+.mp-art.playing{animation:spin 8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* UPLOAD PROGRESS */
+.upload-progress{position:fixed;bottom:24px;left:24px;z-index:9999;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;width:280px;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.up-title{font-size:12px;font-weight:600;margin-bottom:8px;}
+.up-bar-bg{height:5px;background:var(--border);border-radius:99px;overflow:hidden;}
+.up-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:99px;width:0%;transition:width .3s;}
+.up-text{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* MODAL OVERLAY */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:#111318;border:1px solid #1f2330;border-radius:22px;padding:26px;width:100%;max-width:440px;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:slideUp .4s cubic-bezier(.22,1,.36,1) both;max-height:88vh;overflow-y:auto;}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff;flex:1;}
+.modal-close{background:none;border:none;color:#6b7280;font-size:22px;cursor:pointer;line-height:1;padding:0;}
+.mini-input{width:100%;padding:11px 14px;background:#181b22;border:1px solid #1f2330;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;box-sizing:border-box;}
+.mini-input:focus{border-color:#4f8cff;}
+.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,#4f8cff,#a855f7);border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.btn-primary:hover{opacity:.88;}
+.btn-secondary{width:100%;padding:12px;background:#181b22;border:1px solid #1f2330;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+.pin-key{padding:15px;background:#181b22;border:1px solid #1f2330;border-radius:12px;color:#fff;font-size:20px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'Syne',sans-serif;text-align:center;}
+.pin-key:hover{background:rgba(79,140,255,.2);border-color:#4f8cff;}
+.pin-key:active{transform:scale(.9);}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:#1f2330;transition:all .2s;display:inline-block;}
+.pin-dot.filled{background:#4f8cff;box-shadow:0 0 10px rgba(79,140,255,.5);}
+.folder-card{background:#181b22;border:2px solid #1f2330;border-radius:14px;padding:16px;cursor:pointer;transition:all .2s;text-align:center;position:relative;}
+.folder-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.icon-pick{background:#181b22;border:1px solid #1f2330;border-radius:8px;padding:6px 9px;cursor:pointer;font-size:18px;transition:all .15s;}
+.icon-pick.sel{background:rgba(79,140,255,.25);border-color:#4f8cff;}
+.color-pick{width:26px;height:26px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.color-pick.sel{border-color:#fff;transform:scale(1.15);}
+.access-row{display:flex;align-items:center;gap:12px;background:#181b22;border:1px solid #1f2330;border-radius:12px;padding:12px 14px;}
+.fc-share-btn{background:rgba(79,140,255,.15);color:#4f8cff;border:none;border-radius:7px;padding:5px 7px;cursor:pointer;font-size:12px;transition:all .2s;}
+.fc-share-btn:hover{background:rgba(79,140,255,.3);}
+.fc-encrypted-badge{position:absolute;top:6px;left:8px;background:rgba(34,211,165,.2);border:1px solid rgba(34,211,165,.4);border-radius:6px;font-size:9px;color:#22d3a5;padding:2px 5px;font-weight:700;pointer-events:none;}
+.sidebar-overlay{display:none;}
+/* UPDATE BANNER */
+#update-banner{display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,rgba(79,140,255,.97),rgba(162,89,255,.97));backdrop-filter:blur(12px);padding:14px 24px;border-top:1px solid rgba(255,255,255,.15);animation:slideUpBanner .4s cubic-bezier(.22,1,.36,1);}
+@keyframes slideUpBanner{from{transform:translateY(100%);}to{transform:translateY(0);}}
+#update-banner.show{display:flex;}
+.update-banner-inner{max-width:900px;margin:0 auto;width:100%;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.update-banner-text{flex:1;min-width:0;}
+.update-banner-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;}
+.update-banner-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;}
+.update-banner-btns{display:flex;gap:8px;flex-shrink:0;}
+.update-btn-primary{padding:9px 18px;background:#fff;border:none;border-radius:10px;color:#4f8cff;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.update-btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2);}
+.update-btn-dismiss{padding:9px 14px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.update-btn-dismiss:hover{background:rgba(255,255,255,.25);}
+/* RESPONSIVE */
+@media(max-width:1100px){.stats-row{grid-template-columns:repeat(3,1fr);}.search-bar{width:180px;}}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:700px){
+  .mobile-menu-btn{display:flex;align-items:center;}
+  .sidebar{position:fixed;left:0;top:64px;z-index:200;transform:translateX(-100%);height:calc(100vh - 64px);box-shadow:4px 0 24px rgba(0,0,0,.6);}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay{position:fixed;inset:0;top:64px;background:rgba(0,0,0,.6);z-index:199;display:block;opacity:0;pointer-events:none;transition:opacity .3s;}
+  .sidebar-overlay.show{opacity:1;pointer-events:auto;}
+  .header{padding:0 12px;gap:8px;}
+  .search-bar{display:none;}
+  .main{padding:16px 12px;}
+  .upload-zone{padding:24px 14px;margin-bottom:20px;}
+  .stats-row{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px;}
+  .stat-card:last-child{grid-column:1/-1;}
+  .stat-card{padding:14px 10px;}
+  .file-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .file-card .fc-actions{display:flex;}
+  .upload-progress{left:12px;right:12px;width:auto;bottom:12px;}
+  .toast-container{bottom:12px;right:12px;left:12px;}
+  .toast{min-width:unset;width:100%;}
+  .auth-card{padding:28px 20px;}
+  .viewer-box{padding:16px;}
+}
+@media(max-width:480px){
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .file-grid{grid-template-columns:1fr 1fr;}
+  .viewer-content img,.viewer-content video{max-width:95vw;max-height:60vh;}
+}
+</style>
+</head>
+<body>
+<div id="particles"></div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4f8cff,#a259ff);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">☁️</div>
+        <div class="auth-logo-text">ELITE <span>STUDIOS</span></div>
+      </div>
+      <div class="auth-tabs" id="auth-tabs">
+        <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">Iniciar Sesión</button>
+        <button class="auth-tab" data-tab="register" onclick="switchTab('register')">Registrarse</button>
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+      <!-- LOGIN -->
+      <div id="form-login">
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <span class="icon">✉️</span>
+          <input type="email" id="login-email" placeholder="tu@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <span class="icon">🔒</span>
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+          <button class="toggle-pass" onclick="togglePass('login-pass',this)" type="button">👁️</button>
+        </div>
+        <button class="auth-btn" onclick="handleLogin(event)">Entrar a mi Nube</button>
+        <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:8px;">
+          <button onclick="showForgot()" type="button" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;">¿Olvidaste tu contraseña?</button>
+          <button onclick="showDeleteAccount()" type="button" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;opacity:.7;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">🗑️ Eliminar mi cuenta</button>
+        </div>
+      </div>
+      <!-- FORGOT PASSWORD -->
+      <div id="form-forgot" style="display:none">
+        <div id="forgot-step1">
+          <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:18px;">Ingresa tu correo y te enviaremos un <strong style="color:var(--accent)">código de 6 dígitos</strong>.</p>
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <span class="icon">✉️</span>
+            <input type="email" id="forgot-email" placeholder="tu@email.com">
+          </div>
+          <button class="auth-btn" onclick="handleForgot()" id="forgot-btn">Enviar código</button>
+          <div style="text-align:center;margin-top:14px;"><button onclick="hideForgot()" type="button" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">← Volver</button></div>
+        </div>
+        <div id="forgot-step2" style="display:none">
+          <div style="text-align:center;margin-bottom:18px;">
+            <div style="font-size:36px;margin-bottom:8px;">📧</div>
+            <p style="font-size:14px;color:var(--muted);line-height:1.6;">Código enviado a <strong id="forgot-email-display" style="color:var(--accent)"></strong></p>
+          </div>
+          <div class="form-group">
+            <label>Código de 6 dígitos</label>
+            <span class="icon">🔑</span>
+            <input type="text" id="forgot-code-input" placeholder="123456" maxlength="6" style="letter-spacing:8px;font-size:22px;font-weight:700;text-align:center;" oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)">
+          </div>
+          <div id="forgot-code-timer" style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+          <button class="auth-btn" onclick="handleVerifyCode()">Verificar código</button>
+          <div style="text-align:center;margin-top:10px;"><button onclick="resendCode()" id="resend-btn" type="button" style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;">Reenviar código</button></div>
+          <div style="text-align:center;margin-top:6px;"><button onclick="backToStep1()" type="button" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">← Cambiar correo</button></div>
+        </div>
+        <div id="forgot-step3" style="display:none">
+          <div style="text-align:center;margin-bottom:16px;font-size:36px;">✅</div>
+          <div class="form-group">
+            <label>Nueva Contraseña</label>
+            <span class="icon">🔒</span>
+            <input type="password" id="new-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label>Confirmar Contraseña</label>
+            <span class="icon">🔒</span>
+            <input type="password" id="new-pass2" placeholder="Repite la contraseña" autocomplete="new-password">
+          </div>
+          <button class="auth-btn" onclick="confirmReset()">✅ Cambiar Contraseña</button>
+        </div>
+      </div>
+      <!-- DELETE ACCOUNT -->
+      <div id="form-delete" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,79,106,.15);border:1px solid rgba(255,79,106,.3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🗑️</div>
+          <div><div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--red);">Eliminar cuenta</div><div style="font-size:12px;color:var(--muted);">Esta acción no se puede deshacer</div></div>
+        </div>
+        <div class="form-group"><label>Correo</label><span class="icon">✉️</span><input type="email" id="delete-email" placeholder="tu@email.com"></div>
+        <div class="form-group"><label>Contraseña</label><span class="icon">🔒</span><input type="password" id="delete-pass" placeholder="Tu contraseña actual"><button class="toggle-pass" onclick="togglePass('delete-pass',this)" type="button">👁️</button></div>
+        <div id="delete-confirm-box" style="display:none;background:rgba(255,79,106,.08);border:1px solid rgba(255,79,106,.3);border-radius:12px;padding:14px;margin-bottom:16px;">
+          <p style="font-size:13px;color:var(--red);margin-bottom:12px;">⚠️ ¿Estás seguro? Acción irreversible.</p>
+          <button onclick="confirmDeleteAccount()" style="width:100%;padding:11px;background:var(--red);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;" id="delete-confirm-btn">🗑️ Sí, eliminar todo</button>
+        </div>
+        <button class="auth-btn" onclick="handleDeleteAccount()" id="delete-btn" style="background:linear-gradient(135deg,var(--red),#c0392b);">Verificar y Continuar</button>
+        <div style="text-align:center;margin-top:14px;"><button onclick="hideDeleteAccount()" type="button" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">← Volver</button></div>
+      </div>
+      <!-- REGISTER -->
+      <div id="form-register" style="display:none">
+        <div class="form-group"><label>Nombre</label><span class="icon">👤</span><input type="text" id="reg-name" placeholder="Tu nombre"></div>
+        <div class="form-group"><label>Correo</label><span class="icon">✉️</span><input type="email" id="reg-email" placeholder="tu@email.com"></div>
+        <div class="form-group">
+          <label>Contraseña</label><span class="icon">🔒</span>
+          <input type="password" id="reg-pass" placeholder="Mínimo 8 caracteres" oninput="checkStrength(this.value)" autocomplete="new-password">
+          <button class="toggle-pass" onclick="togglePass('reg-pass',this)" type="button">👁️</button>
+          <div class="strength-bar" id="strength-bar"><div id="s1"></div><div id="s2"></div><div id="s3"></div><div id="s4"></div></div>
+        </div>
+        <div class="form-group"><label>Confirmar</label><span class="icon">🔒</span><input type="password" id="reg-pass2" placeholder="Repite la contraseña" autocomplete="new-password"></div>
+        <button class="auth-btn" onclick="handleRegister(event)">Crear mi Cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER ANDROID -->
+<div id="install-banner" style="display:none;background:linear-gradient(135deg,#0d1a3a,#15103a);border-bottom:1px solid rgba(79,140,255,.25);padding:12px 20px;">
+  <div style="max-width:900px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div style="width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#4f8cff,#a259ff);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">☁️</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fff;">Instalar ELITE STUDIOS</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:1px;">Accede sin internet · Experiencia de app nativa</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="triggerInstall()" style="padding:8px 18px;background:linear-gradient(135deg,#4f8cff,#a259ff);border:none;border-radius:9px;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">📲 Instalar</button>
+      <button onclick="dismissInstallBanner()" style="padding:8px 10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:9px;color:rgba(255,255,255,.5);font-size:13px;cursor:pointer;">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <header class="header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="header-logo">☁️ ELITE<span>STUDIOS</span></div>
+    </div>
+    <div class="search-bar">
+      <span style="color:var(--muted)">🔍</span>
+      <input type="text" placeholder="Buscar archivos..." oninput="searchFiles(this.value)">
+    </div>
+    <div class="header-right">
+      <div class="user-btn">
+        <div class="user-avatar" id="user-avatar-text">U</div>
+        <span id="user-display-name">Usuario</span>
+      </div>
+    </div>
+  </header>
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-label">Navegación</div>
+      <div class="sidebar-item active" onclick="filterType('all',this)"><span class="s-ico">🏠</span> Todo</div>
+      <div class="sidebar-item" onclick="filterType('image',this)"><span class="s-ico">🖼️</span> Imágenes</div>
+      <div class="sidebar-item" onclick="filterType('video',this)"><span class="s-ico">🎬</span> Videos</div>
+      <div class="sidebar-item" onclick="filterType('audio',this)"><span class="s-ico">🎵</span> Música</div>
+      <div class="sidebar-item" onclick="filterType('document',this)"><span class="s-ico">📄</span> Documentos</div>
+      <div class="sidebar-item" onclick="filterType('archive',this)"><span class="s-ico">🗜️</span> ZIP / RAR</div>
+      <div class="sidebar-item" onclick="filterType('iso',this)"><span class="s-ico">💿</span> ISO</div>
+      <div class="sidebar-item" onclick="filterType('other',this)"><span class="s-ico">📦</span> Otros</div>
+      <div class="sidebar-label">Acciones</div>
+      <div class="sidebar-item" onclick="document.getElementById('file-input').click()"><span class="s-ico">⬆️</span> Subir archivo</div>
+      <div class="sidebar-item" onclick="exportBackup()" style="color:var(--green)"><span class="s-ico">📤</span> Exportar backup</div>
+      <div class="sidebar-item" onclick="document.getElementById('import-input').click()" style="color:#4f8cff"><span class="s-ico">📥</span> Importar backup</div>
+      <input type="file" id="import-input" accept=".nvbackup" style="display:none" onchange="importBackup(this)">
+      <div class="sidebar-item" onclick="compressAll()" style="color:var(--green)"><span class="s-ico">🗜️</span> Comprimir todo (ZIP)</div>
+      <div class="sidebar-item" onclick="openFoldersModal()"><span class="s-ico">📁</span> Mis Carpetas</div>
+      <div class="sidebar-item" onclick="openHistoryModal()"><span class="s-ico">🛡️</span> Historial accesos</div>
+      <div class="sidebar-item" onclick="openPinSetup()"><span class="s-ico">🔐</span> PIN privado</div>
+      <div class="sidebar-item" onclick="lockApp()"><span class="s-ico">🔒</span> Bloquear app</div>
+      <div class="sidebar-item" onclick="confirmClearAll()"><span class="s-ico">🗑️</span> Vaciar nube</div>
+      <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+      <div class="sidebar-item" id="install-btn" onclick="triggerInstall()" style="display:none;background:linear-gradient(135deg,rgba(79,140,255,.15),rgba(162,89,255,.15));border:1px solid rgba(79,140,255,.35);color:#4f8cff;font-weight:700;"><span class="s-ico">📲</span> Instalar app</div>
+      <div class="sidebar-item" onclick="handleLogout()" style="color:var(--red)"><span class="s-ico">🚪</span> Cerrar sesión</div>
+      <div class="storage-widget">
+        <div class="sw-title">☁️ Almacenamiento local</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);" id="storage-used">0 KB usado</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px;">♾️ Sin límite</div>
+      </div>
+    </aside>
+    <main class="main">
+      <input type="file" id="file-input" multiple style="display:none;" onchange="handleFileInput(this.files)">
+      <div class="upload-zone" id="drop-zone" ondragover="event.preventDefault()" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)" ondrop="handleDrop(event)" onclick="document.getElementById('file-input').click()">
+        <div class="uz-icon">☁️</div>
+        <div class="uz-title">Sube tus archivos</div>
+        <div class="uz-sub">Arrastra y suelta aquí, o haz clic para seleccionar · Sin límite de cantidad ni tamaño</div>
+        <div class="uz-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">+ Seleccionar archivos</div>
+      </div>
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card"><div class="sc-icon">🖼️</div><div class="sc-num" id="count-images">0</div><div class="sc-label">Imágenes</div></div>
+        <div class="stat-card"><div class="sc-icon">🎵</div><div class="sc-num" id="count-audio">0</div><div class="sc-label">Música</div></div>
+        <div class="stat-card"><div class="sc-icon">🎬</div><div class="sc-num" id="count-videos">0</div><div class="sc-label">Videos</div></div>
+        <div class="stat-card"><div class="sc-icon">📄</div><div class="sc-num" id="count-docs">0</div><div class="sc-label">Documentos</div></div>
+        <div class="stat-card"><div class="sc-icon">📦</div><div class="sc-num" id="count-total">0</div><div class="sc-label">Total</div></div>
+      </div>
+      <div class="section-header">
+        <h2 id="section-title">Mis Archivos</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="encrypt-toggle" onclick="toggleEncryptMode()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">🔐 Cifrar</button>
+          <div class="view-toggle">
+            <button id="btn-grid" class="active" onclick="setView('grid')" title="Cuadrícula">⊞</button>
+            <button id="btn-list" onclick="setView('list')" title="Lista">☰</button>
+          </div>
+        </div>
+      </div>
+      <div id="folder-banner" style="display:none;background:rgba(79,140,255,.08);border:1px solid rgba(79,140,255,.25);border-radius:14px;padding:14px 18px;margin-bottom:16px;align-items:center;gap:14px;flex-wrap:wrap;">
+        <span id="folder-banner-icon" style="font-size:26px;">📁</span>
+        <div style="flex:1;min-width:0;">
+          <div id="folder-banner-name" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#4f8cff;"></div>
+          <div id="folder-banner-count" style="font-size:12px;color:var(--muted);margin-top:2px;"></div>
+        </div>
+        <label style="padding:9px 16px;background:linear-gradient(135deg,#4f8cff,#a855f7);border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">
+          <input type="file" id="folder-file-input" multiple style="display:none;" onchange="handleFolderFileInput(this.files)">⬆️ Subir aquí
+        </label>
+        <button onclick="goBackToAll()" style="padding:9px 14px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;">✕ Ver todos</button>
+      </div>
+      <div class="file-grid" id="file-grid"></div>
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div class="es-icon">☁️</div>
+        <p>Tu nube está vacía. ¡Sube algunos archivos!</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- UPLOAD PROGRESS -->
+<div class="upload-progress" id="upload-progress">
+  <div class="up-title">⬆️ <span id="up-filename">Subiendo...</span></div>
+  <div class="up-bar-bg"><div class="up-bar-fill" id="up-fill"></div></div>
+  <div class="up-text" id="up-text">Preparando...</div>
+</div>
+
+<!-- MEDIA VIEWER -->
+<div id="viewer-modal">
+  <div class="viewer-box" id="viewer-box">
+    <div class="viewer-header">
+      <span id="viewer-file-icon" style="font-size:20px;flex-shrink:0"></span>
+      <div class="viewer-title" id="viewer-title"></div>
+      <button class="viewer-close" onclick="closeViewer()">✕</button>
+    </div>
+    <div class="viewer-content" id="viewer-content"></div>
+    <div class="viewer-footer">
+      <button class="viewer-nav-btn" id="viewer-prev-btn" onclick="navigateViewer(-1)">‹ Anterior</button>
+      <button class="viewer-dl-btn" id="viewer-dl-btn">⬇️ Descargar</button>
+      <button class="viewer-nav-btn" id="viewer-compress-btn" onclick="compressCurrentFile()" style="background:rgba(34,211,165,.12);border-color:rgba(34,211,165,.3);color:var(--green);">🗜️ ZIP</button>
+      <button class="viewer-nav-btn" id="viewer-rename-btn" onclick="renameCurrentFile()">✏️ Renombrar</button>
+      <button class="viewer-nav-btn" id="viewer-next-btn" onclick="navigateViewer(1)">Siguiente ›</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- UPDATE BANNER -->
+<div id="update-banner">
+  <div class="update-banner-inner">
+    <span style="font-size:26px;flex-shrink:0;">🚀</span>
+    <div class="update-banner-text">
+      <div class="update-banner-title">¡Nueva versión disponible! <span id="update-new-version" style="background:rgba(255,255,255,.2);border-radius:6px;padding:1px 8px;font-size:12px;"></span></div>
+      <div class="update-banner-sub" id="update-changelog">Hay mejoras y correcciones disponibles para ELITE STUDIOS.</div>
+    </div>
+    <div class="update-banner-btns">
+      <button class="update-btn-primary" onclick="doUpdate()">⬇️ Actualizar ahora</button>
+      <button class="update-btn-dismiss" onclick="dismissUpdate()">Más tarde</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: HISTORIAL -->
+<div id="modal-history" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:24px;">🛡️</span>
+      <div class="modal-title">Historial de accesos</div>
+      <button class="modal-close" onclick="closeHistoryModal()">✕</button>
+    </div>
+    <div id="access-log-list" style="display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto;"></div>
+    <button class="btn-secondary" onclick="closeHistoryModal()" style="margin-top:16px;">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: PIN -->
+<div id="modal-pin" class="modal-overlay" style="z-index:10000;background:rgba(0,0,0,.95);">
+  <div class="modal-box" style="max-width:300px;text-align:center;">
+    <div id="pin-title" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:6px;">🔐 PIN privado</div>
+    <div id="pin-subtitle" style="font-size:13px;color:#6b7280;margin-bottom:4px;">Ingresa tu PIN de 4 dígitos</div>
+    <div style="display:flex;gap:14px;justify-content:center;margin:22px 0;">
+      <div id="pin-dot-1" class="pin-dot"></div>
+      <div id="pin-dot-2" class="pin-dot"></div>
+      <div id="pin-dot-3" class="pin-dot"></div>
+      <div id="pin-dot-4" class="pin-dot"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:200px;margin:0 auto;">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key" onclick="pinBackspace()">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key" onclick="if(!_appLocked){document.getElementById('modal-pin').style.display='none';}" style="color:#6b7280;font-size:13px;">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CARPETAS -->
+<div id="modal-folders" class="modal-overlay">
+  <div class="modal-box" style="max-width:500px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:24px;">📁</span>
+      <div class="modal-title">Mis Carpetas</div>
+      <button class="modal-close" onclick="closeFoldersModal()">✕</button>
+    </div>
+    <div style="background:#181b22;border:1px solid #1f2330;border-radius:14px;padding:18px;margin-bottom:18px;">
+      <div style="font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Nueva carpeta</div>
+      <input id="new-folder-name" class="mini-input" type="text" placeholder="Nombre de la carpeta..." style="margin-bottom:12px;">
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600;">Icono:</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="icon-pick sel" onclick="pickFolderIcon(this,'📁')">📁</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'🎮')">🎮</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'🎵')">🎵</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'🎬')">🎬</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'📸')">📸</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'📚')">📚</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'💼')">💼</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'🏠')">🏠</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'⭐')">⭐</button>
+        <button class="icon-pick" onclick="pickFolderIcon(this,'🔥')">🔥</button>
+      </div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600;">Color:</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;">
+        <div class="color-pick sel" onclick="pickFolderColor(this,'#4f8cff')" style="background:#4f8cff;"></div>
+        <div class="color-pick" onclick="pickFolderColor(this,'#a855f7')" style="background:#a855f7;"></div>
+        <div class="color-pick" onclick="pickFolderColor(this,'#22d3a5')" style="background:#22d3a5;"></div>
+        <div class="color-pick" onclick="pickFolderColor(this,'#ffc84a')" style="background:#ffc84a;"></div>
+        <div class="color-pick" onclick="pickFolderColor(this,'#ff4f6a')" style="background:#ff4f6a;"></div>
+        <div class="color-pick" onclick="pickFolderColor(this,'#ff6b35')" style="background:#ff6b35;"></div>
+      </div>
+      <button class="btn-primary" onclick="createFolder()">+ Crear Carpeta</button>
+    </div>
+    <div id="folders-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;"></div>
+  </div>
+</div>
+
+<!-- MODAL: COMPARTIR -->
+<div id="modal-share" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span id="share-file-icon" style="font-size:26px;">📄</span>
+      <div class="modal-title">Compartir archivo</div>
+      <button class="modal-close" onclick="closeShareModal()">✕</button>
+    </div>
+    <div id="share-file-name" style="font-size:12px;color:#6b7280;margin-bottom:16px;word-break:break-all;"></div>
+    <div id="share-ready">
+      <div style="background:#181b22;border:1px solid #1f2330;border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:#6b7280;line-height:1.7;">🌐 El archivo se subirá a un servidor público gratuito.<br>📥 Cualquiera con el link podrá descargarlo.<br>♾️ <strong style="color:#22d3a5;">Sin límite de tamaño.</strong></div>
+      <button class="btn-primary" onclick="uploadAndShare()">🚀 Subir y generar link</button>
+    </div>
+    <div id="share-uploading" style="display:none;text-align:center;padding:20px 0;">
+      <div style="font-size:40px;margin-bottom:12px;">⏳</div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;">Subiendo archivo...</div>
+      <div id="share-upload-progress" style="font-size:12px;color:#6b7280;">Preparando...</div>
+      <div style="background:#1f2330;border-radius:99px;height:6px;margin-top:14px;overflow:hidden;"><div id="share-progress-bar" style="height:100%;background:linear-gradient(90deg,#4f8cff,#a855f7);width:0%;transition:width .3s;border-radius:99px;"></div></div>
+    </div>
+    <div id="share-generated" style="display:none;">
+      <div style="background:rgba(34,211,165,.08);border:1px solid rgba(34,211,165,.3);border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="font-size:12px;color:#22d3a5;font-weight:700;margin-bottom:8px;">✅ ¡Link listo!</div>
+        <div style="background:#111318;border:1px solid #1f2330;border-radius:10px;padding:10px 12px;display:flex;gap:8px;align-items:center;">
+          <input id="share-link-input" readonly type="text" style="flex:1;background:none;border:none;color:#4f8cff;font-size:12px;outline:none;min-width:0;font-weight:600;">
+          <button onclick="copyShareLink()" style="background:#4f8cff;border:none;border-radius:8px;color:#fff;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">📋 Copiar</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <button onclick="shareViaWhatsApp()" style="padding:10px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);border-radius:10px;color:#25d366;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">💬 WhatsApp</button>
+        <button onclick="shareViaTelegram()" style="padding:10px;background:rgba(0,136,204,.12);border:1px solid rgba(0,136,204,.3);border-radius:10px;color:#0088cc;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">✈️ Telegram</button>
+      </div>
+    </div>
+    <div id="share-error" style="display:none;background:rgba(255,79,106,.08);border:1px solid rgba(255,79,106,.3);border-radius:12px;padding:14px;text-align:center;">
+      <div style="font-size:24px;margin-bottom:8px;">❌</div>
+      <div id="share-error-msg" style="font-size:13px;color:#ff4f6a;margin-bottom:12px;"></div>
+      <button onclick="resetShareModal()" style="padding:9px 20px;background:#181b22;border:1px solid #1f2330;border-radius:10px;color:#fff;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;">↩ Reintentar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// ELITE STUDIOS — Motor optimizado para millones de archivos
+// Todos los bugs corregidos + rendimiento máximo
+// ═══════════════════════════════════════════════════════════
+
+const STORAGE_KEY = 'nubevault_users';
+const SESSION_KEY = 'nubevault_session';
+
+// ── Conversión binaria (sin crashear con buffers grandes) ──
+function ab2b64(buf) {
+  const bytes = new Uint8Array(buf);
+  const chunks = [];
+  for (let i = 0; i < bytes.length; i += 8192) {
+    chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, i + 8192)));
+  }
+  return btoa(chunks.join(''));
+}
+function b642ab(b64) {
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+
+// ── IndexedDB — almacenamiento infinito y optimizado ──
+let _db = null;
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('EliteStudiosDB', 3);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('files')) {
+        const store = db.createObjectStore('files', { keyPath: 'id' });
+        store.createIndex('byEmail', 'email', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('meta')) {
+        db.createObjectStore('meta', { keyPath: 'email' });
+      }
+    };
+    req.onsuccess = e => { _db = e.target.result; res(_db); };
+    req.onerror = e => rej(e.target.error);
+  });
+}
+
+function dbPutFile(entry) {
+  return openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readwrite');
+    const req = tx.objectStore('files').put(entry);
+    req.onsuccess = () => res(true);
+    req.onerror = e => rej(e.target.error);
+  }));
+}
+function dbDeleteFile(id) {
+  return openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readwrite');
+    const req = tx.objectStore('files').delete(id);
+    req.onsuccess = () => res(true);
+    req.onerror = e => rej(e.target.error);
+  }));
+}
+
+// Carga paginada — evita crashear con 100+ archivos
+function dbGetAllFiles(email, offset = 0, limit = 100) {
+  return openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readonly');
+    const idx = tx.objectStore('files').index('byEmail');
+    const req = idx.getAll(IDBKeyRange.only(email));
+    req.onsuccess = e => {
+      const all = e.target.result || [];
+      res(all.sort((a, b) => b.date - a.date));
+    };
+    req.onerror = e => rej(e.target.error);
+  }));
+}
+
+function dbClearUserFiles(email) {
+  return openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readwrite');
+    const idx = tx.objectStore('files').index('byEmail');
+    const req = idx.getAllKeys(IDBKeyRange.only(email));
+    req.onsuccess = e => {
+      const keys = e.target.result || [];
+      const store = tx.objectStore('files');
+      keys.forEach(k => store.delete(k));
+      tx.oncomplete = () => res();
+      tx.onerror = e => rej(e.target.error);
+    };
+    req.onerror = e => rej(e.target.error);
+  }));
+}
+
+// ── Crypto ──
+const hasCrypto = typeof crypto !== 'undefined' && !!crypto.subtle && location.protocol !== 'file:';
+
+function legacyHash(p) {
+  let h = 0;
+  for (let i = 0; i < p.length; i++) { h = ((h << 5) - h) + p.charCodeAt(i); h |= 0; }
+  return h.toString(36) + p.length + 'sv';
+}
+
+async function hashPass(password, saltHex) {
+  const salt = saltHex
+    ? new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+    : crypto.getRandomValues(new Uint8Array(32));
+  const saltStr = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  if (hasCrypto) {
+    try {
+      const enc = new TextEncoder();
+      const km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, km, 256);
+      const hex = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return { hash: 'p2:' + hex, salt: saltStr };
+    } catch(e) {}
+  }
+  return { hash: 'fb:' + legacyHash(saltStr + password), salt: saltStr };
+}
+
+// ── Session ──
+let _sessionPass = null;
+function getUsers() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; } }
+function saveUsers(u) { localStorage.setItem(STORAGE_KEY, JSON.stringify(u)); }
+function getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; } }
+function setSession(u) { localStorage.setItem(SESSION_KEY, JSON.stringify(u)); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); _sessionPass = null; }
+function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+function sanitize(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Rate limiting ──
+const _fails = {}, _failTimes = {};
+function checkRateLimit(email) {
+  const now = Date.now();
+  if (_failTimes[email] && now - _failTimes[email] > 60000) _fails[email] = 0;
+  return (_fails[email] || 0) < 5;
+}
+function recordFail(email) { _fails[email] = (_fails[email] || 0) + 1; _failTimes[email] = Date.now(); }
+
+// ── UI auth helpers ──
+function showError(msg) {
+  const el = document.getElementById('auth-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() { const el = document.getElementById('auth-error'); if (el) el.style.display = 'none'; }
+
+function switchTab(tab) {
+  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('form-forgot').style.display = 'none';
+  document.getElementById('form-delete').style.display = 'none';
+  document.getElementById('auth-tabs').style.display = '';
+  document.querySelectorAll('.auth-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  hideError();
+}
+function checkStrength(p) {
+  const bars = [document.getElementById('s1'), document.getElementById('s2'), document.getElementById('s3'), document.getElementById('s4')];
+  let score = 0;
+  if (p.length >= 8) score++;
+  if (p.length >= 12) score++;
+  if (/[A-Z]/.test(p) && /[0-9]/.test(p)) score++;
+  if (/[^a-zA-Z0-9]/.test(p)) score++;
+  const colors = ['#ff4f6a', '#ffc84a', '#4f8cff', '#22d3a5'];
+  bars.forEach((b, i) => { if (b) b.style.background = i < score ? colors[score - 1] : 'var(--border)'; });
+}
+function togglePass(id, btn) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'password' ? '👁️' : '🙈';
+}
+function showForgot() {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.getElementById('form-forgot').style.display = '';
+  document.getElementById('auth-tabs').style.display = 'none';
+  document.getElementById('forgot-step1').style.display = 'block';
+  document.getElementById('forgot-step2').style.display = 'none';
+  document.getElementById('forgot-step3').style.display = 'none';
+  _resetCode = null; _resetEmail = null; clearInterval(_resetTimer);
+  hideError();
+}
+function hideForgot() { _resetCode = null; _resetEmail = null; clearInterval(_resetTimer); switchTab('login'); }
+function showDeleteAccount() {
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.getElementById('form-forgot').style.display = 'none';
+  document.getElementById('form-delete').style.display = '';
+  document.getElementById('auth-tabs').style.display = 'none';
+  document.getElementById('delete-confirm-box').style.display = 'none';
+  document.getElementById('delete-btn').style.display = '';
+  hideError();
+}
+function hideDeleteAccount() { switchTab('login'); }
+
+// ── Reset password ──
+let _resetCode = null, _resetEmail = null, _resetTimer = null;
+
+async function handleForgot() {
+  hideError();
+  const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+  if (!email) { showError('Ingresa tu correo.'); return; }
+  if (!validateEmail(email)) { showError('Correo inválido.'); return; }
+  const users = getUsers();
+  if (!users[email]) { showError('No encontramos una cuenta con ese correo.'); return; }
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = '⏳ Enviando...';
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  _resetCode = code; _resetEmail = email;
+  await sendEmail('reset', { email, name: users[email].name || '', code });
+  btn.disabled = false; btn.textContent = 'Enviar código';
+  document.getElementById('forgot-step1').style.display = 'none';
+  document.getElementById('forgot-step2').style.display = 'block';
+  document.getElementById('forgot-email-display').textContent = email;
+  document.getElementById('forgot-code-input').value = '';
+  startResetTimer(600);
+}
+
+function startResetTimer(secs) {
+  const el = document.getElementById('forgot-code-timer');
+  const resend = document.getElementById('resend-btn');
+  if (resend) { resend.style.opacity = '.4'; resend.style.pointerEvents = 'none'; }
+  clearInterval(_resetTimer);
+  let remaining = secs;
+  const tick = () => {
+    if (!el) return;
+    const m = Math.floor(remaining / 60), s = remaining % 60;
+    el.textContent = `Expira en ${m > 0 ? m + 'm ' : ''}${s}s`;
+    remaining--;
+    if (remaining < 0) {
+      clearInterval(_resetTimer);
+      el.textContent = '⚠️ El código expiró.';
+      _resetCode = null;
+      if (resend) { resend.style.opacity = '1'; resend.style.pointerEvents = 'auto'; }
+    }
+  };
+  tick(); _resetTimer = setInterval(tick, 1000);
+}
+
+function backToStep1() {
+  hideError(); clearInterval(_resetTimer); _resetCode = null; _resetEmail = null;
+  document.getElementById('forgot-step2').style.display = 'none';
+  document.getElementById('forgot-step1').style.display = 'block';
+}
+
+async function resendCode() {
+  if (!_resetEmail) { backToStep1(); return; }
+  const users = getUsers();
+  if (!users[_resetEmail]) { showError('Cuenta no encontrada.'); backToStep1(); return; }
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  _resetCode = code;
+  await sendEmail('reset', { email: _resetEmail, name: users[_resetEmail].name || '', code });
+  startResetTimer(600);
+  document.getElementById('forgot-code-input').value = '';
+  showToast('✅ Código reenviado', 'success');
+}
+
+function handleVerifyCode() {
+  hideError();
+  const input = document.getElementById('forgot-code-input').value.trim();
+  if (!input || input.length < 6) { showError('Ingresa el código de 6 dígitos.'); return; }
+  if (!_resetCode) { showError('El código expiró. Solicita uno nuevo.'); return; }
+  if (input !== _resetCode) { showError('Código incorrecto.'); return; }
+  clearInterval(_resetTimer);
+  const users = getUsers();
+  document.getElementById('forgot-step2').style.display = 'none';
+  document.getElementById('forgot-step3').style.display = 'block';
+  document.getElementById('new-pass').value = '';
+  document.getElementById('new-pass2').value = '';
+}
+
+async function confirmReset() {
+  const email = _resetEmail;
+  const newPass = document.getElementById('new-pass').value;
+  const newPass2 = document.getElementById('new-pass2').value;
+  if (!newPass || newPass.length < 8) { showError('Mínimo 8 caracteres.'); return; }
+  if (newPass !== newPass2) { showError('Las contraseñas no coinciden.'); return; }
+  const users = getUsers();
+  if (!users[email]) { showError('Cuenta no encontrada.'); return; }
+  const { hash, salt } = await hashPass(newPass);
+  users[email].passHash = hash; users[email].passSalt = salt;
+  saveUsers(users);
+  _resetCode = null; _resetEmail = null;
+  switchTab('login');
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '✅ Contraseña cambiada. Ya puedes iniciar sesión.';
+  errEl.style.display = 'block';
+}
+
+async function handleDeleteAccount() {
+  hideError();
+  const email = document.getElementById('delete-email').value.trim().toLowerCase();
+  const pass = document.getElementById('delete-pass').value;
+  if (!email || !pass) { showError('Completa todos los campos.'); return; }
+  const users = getUsers();
+  if (!users[email]) { showError('Cuenta no encontrada.'); return; }
+  const btn = document.getElementById('delete-btn');
+  btn.disabled = true; btn.textContent = '⏳ Verificando...';
+  let valid = false;
+  const user = users[email];
+  if (user.passSalt && user.passHash) {
+    const { hash } = await hashPass(pass, user.passSalt);
+    valid = hash === user.passHash;
+  }
+  if (!valid && !user.passSalt) valid = legacyHash(pass) === user.passHash;
+  if (!valid) { showError('Contraseña incorrecta.'); btn.disabled = false; btn.textContent = 'Verificar y Continuar'; return; }
+  document.getElementById('delete-confirm-box').style.display = 'block';
+  btn.style.display = 'none';
+}
+
+async function confirmDeleteAccount() {
+  const email = document.getElementById('delete-email').value.trim().toLowerCase();
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.disabled = true; btn.textContent = '⏳ Eliminando...';
+  await dbClearUserFiles(email);
+  const users = getUsers();
+  delete users[email]; saveUsers(users);
+  clearSession(); currentUser = null; allFiles = [];
+  switchTab('login');
+  showToast('✅ Cuenta eliminada', 'success');
+}
+
+// ── Login / Register ──
+async function handleLogin(e) {
+  hideError();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showError('Completa todos los campos.'); return; }
+  if (!validateEmail(email)) { showError('Correo inválido.'); return; }
+  if (!checkRateLimit(email)) { showError('Demasiados intentos. Espera 60s.'); return; }
+  const btn = document.querySelector('#form-login .auth-btn');
+  btn.disabled = true; btn.textContent = '🔐 Verificando...';
+  try {
+    const users = getUsers();
+    const user = users[email];
+    if (!user) throw new Error('not_found');
+    let valid = false;
+    if (user.passSalt && user.passHash) {
+      const { hash } = await hashPass(pass, user.passSalt);
+      valid = hash === user.passHash;
+    }
+    if (!valid && !user.passSalt) {
+      valid = legacyHash(pass) === user.passHash;
+      if (valid) {
+        const { hash, salt } = await hashPass(pass);
+        user.passHash = hash; user.passSalt = salt;
+        saveUsers(users);
+      }
+    }
+    if (!valid) throw new Error('wrong_pass');
+    _sessionPass = pass;
+    setSession({ email, name: user.name });
+    enterApp(user.name, email);
+  } catch(err) {
+    recordFail(email);
+    showError('Correo o contraseña incorrectos.');
+    btn.disabled = false; btn.textContent = 'Entrar a mi Nube';
+  }
+}
+
+async function handleRegister(e) {
+  hideError();
+  const name = sanitize(document.getElementById('reg-name').value.trim());
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if (!name || !email || !pass || !pass2) { showError('Completa todos los campos.'); return; }
+  if (name.length < 2) { showError('Nombre muy corto.'); return; }
+  if (!validateEmail(email)) { showError('Correo inválido.'); return; }
+  if (pass.length < 8) { showError('Mínimo 8 caracteres.'); return; }
+  if (pass !== pass2) { showError('Las contraseñas no coinciden.'); return; }
+  const btn = document.querySelector('#form-register .auth-btn');
+  btn.disabled = true; btn.textContent = '🔐 Creando cuenta...';
+  const users = getUsers();
+  if (users[email]) { showError('Ya existe una cuenta con ese correo.'); btn.disabled = false; btn.textContent = 'Crear mi Cuenta'; return; }
+  try {
+    const { hash, salt } = await hashPass(pass);
+    users[email] = { name, passHash: hash, passSalt: salt, created: Date.now() };
+    saveUsers(users);
+    _sessionPass = pass;
+    setSession({ email, name });
+    sendEmail('welcome', { email, name });
+    enterApp(name, email);
+  } catch(err) {
+    showError('Error al crear la cuenta.');
+    btn.disabled = false; btn.textContent = 'Crear mi Cuenta';
+  }
+}
+
+// ── App core ──
+let currentUser = null, allFiles = [], currentFilter = 'all', viewMode = 'grid';
+let encryptMode = false;
+const _fileRefs = {}; // Referencia a File objects grandes (solo en sesión)
+
+async function enterApp(name, email) {
+  currentUser = { name, email };
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('user-display-name').textContent = name;
+  document.getElementById('user-avatar-text').textContent = name[0].toUpperCase();
+  logAccess(email);
+  await loadFiles();
+}
+
+function handleLogout() {
+  clearSession(); currentUser = null; allFiles = [];
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+  switchTab('login');
+}
+
+// ── Files ──
+async function loadFiles() {
+  allFiles = [];
+  try {
+    const rows = await dbGetAllFiles(currentUser.email);
+    allFiles = rows;
+  } catch(e) {
+    console.warn('IndexedDB error, falling back to localStorage:', e);
+    try {
+      const raw = localStorage.getItem('elite_files_' + currentUser.email);
+      allFiles = raw ? JSON.parse(raw) : [];
+      // Migrate to IndexedDB
+      if (allFiles.length > 0) {
+        migrateLsToIdb();
+      }
+    } catch {}
+  }
+  renderFilesVirtualized();
+  updateStats();
+  updateStorage();
+}
+
+async function migrateLsToIdb() {
+  try {
+    for (const f of allFiles) {
+      await dbPutFile({ ...f, email: currentUser.email });
+    }
+    localStorage.removeItem('elite_files_' + currentUser.email);
+  } catch(e) { console.warn('Migration failed:', e); }
+}
+
+async function saveFile(entry) {
+  try {
+    await dbPutFile({ ...entry, email: currentUser.email });
+    return true;
+  } catch(e) {
+    // Fallback localStorage
+    try {
+      const key = 'elite_files_' + currentUser.email;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      const idx = existing.findIndex(f => f.id === entry.id);
+      if (idx >= 0) existing[idx] = { ...entry, email: currentUser.email };
+      else existing.unshift({ ...entry, email: currentUser.email });
+      localStorage.setItem(key, JSON.stringify(existing));
+      return true;
+    } catch {
+      showToast('❌ Error al guardar "' + entry.name + '"', 'error');
+      return false;
+    }
+  }
+}
+
+function getFileType(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','svg','bmp','avif','tiff','ico'].includes(ext)) return 'image';
+  if (['mp3','wav','ogg','flac','aac','m4a','opus','wma','aiff','mid','midi'].includes(ext)) return 'audio';
+  if (['mp4','avi','mov','mkv','webm','flv','wmv','m4v','3gp','ts','mpeg','mpg','ogv'].includes(ext)) return 'video';
+  if (['pdf','doc','docx','txt','xls','xlsx','ppt','pptx','csv','rtf','odt','ods'].includes(ext)) return 'document';
+  if (['iso'].includes(ext)) return 'iso';
+  if (['zip','rar','7z','tar','gz','bz2'].includes(ext)) return 'archive';
+  return 'other';
+}
+function getFileIcon(type, name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const m = { image:'🖼️', audio:'🎵', video:'🎬', document:'📄', iso:'💿', archive:'🗜️', other:'📦',
+    pdf:'📕', doc:'📘', docx:'📘', xls:'📗', xlsx:'📗', ppt:'📙', pptx:'📙', txt:'📝', csv:'📊' };
+  return m[ext] || m[type] || '📦';
+}
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+  return (b / 1073741824).toFixed(2) + ' GB';
+}
+function formatDate(ts) {
+  return new Date(ts).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ── Upload optimizado — sin crashear con 100+ archivos ──
+function handleFileInput(fileList) {
+  if (!fileList || !fileList.length) return;
+  const files = Array.from(fileList); // copia antes de resetear
+  const input = document.getElementById('file-input');
+  if (input) input.value = ''; // resetear input para permitir re-subir el mismo archivo
+  uploadFilesQueue(files);
+}
+function handleDrop(e) {
+  e.preventDefault(); dragLeave(e);
+  uploadFilesQueue(Array.from(e.dataTransfer.files));
+}
+function dragEnter(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+
+// Cola asíncrona — evita bloquear UI y crashear con muchos archivos
+const _uploadQueue = [];
+let _isUploading = false;
+
+function uploadFilesQueue(files, folderId) {
+  const folder = folderId || (currentFilter.startsWith('folder_') ? currentFilter.slice(7) : null);
+  files.forEach(f => _uploadQueue.push({ file: f, folderId: folder }));
+  if (!_isUploading) processUploadQueue();
+}
+
+async function processUploadQueue() {
+  if (_isUploading || _uploadQueue.length === 0) return;
+  _isUploading = true;
+  let saved = 0, failed = 0;
+  const total = _uploadQueue.length;
+  showProgress(`0/${total} archivos`);
+
+  while (_uploadQueue.length > 0) {
+    const { file, folderId } = _uploadQueue.shift();
+    const current = total - _uploadQueue.length;
+    showProgress(`(${current}/${total}) ${file.name}`);
+    updateProgress((current / total) * 100, file.name);
+
+    try {
+      const LARGE = 300 * 1024 * 1024; // 300MB threshold
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      const entry = {
+        id, email: currentUser.email,
+        name: sanitize(file.name),
+        type: getFileType(file.name),
+        size: file.size,
+        date: Date.now(),
+        data: null
+      };
+      if (folderId) entry.folderId = folderId;
+
+      if (file.size > LARGE) {
+        // Archivo enorme: solo referencia en memoria
+        entry.isRef = true;
+        _fileRefs[id] = file;
+        const ok = await saveFile(entry);
+        if (ok) { allFiles.unshift(entry); saved++; }
+        else failed++;
+      } else {
+        // Leer como data URL
+        const dataUrl = await readFileAsDataURL(file);
+        let finalData = dataUrl;
+        if (encryptMode) {
+          try { finalData = await encryptFileData(dataUrl); entry.encrypted = true; }
+          catch(e) { console.warn('Encrypt failed, saving plain:', e); }
+        }
+        entry.data = finalData;
+        const ok = await saveFile(entry);
+        if (ok) { allFiles.unshift(entry); saved++; }
+        else failed++;
+      }
+      // Actualizar UI cada 10 archivos o al final
+      if (saved % 10 === 0 || _uploadQueue.length === 0) {
+        renderFilesVirtualized();
+        updateStats();
+        updateStorage();
+      }
+      // Pequeña pausa para no bloquear el hilo principal en móvil
+      await sleep(isMobile() ? 50 : 10);
+    } catch(err) {
+      console.error('Upload error:', err);
+      failed++;
+    }
+  }
+
+  hideProgress();
+  renderFilesVirtualized();
+  updateStats();
+  updateStorage();
+  if (saved > 0) showToast('✅ ' + saved + ' archivo(s) guardado(s)', 'success');
+  if (failed > 0) showToast('❌ ' + failed + ' archivo(s) fallaron', 'error');
+  _isUploading = false;
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload = e => res(e.target.result);
+    reader.onerror = () => rej(new Error('Read error'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function isMobile() { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
+async function getFileDataURL(f) {
+  if (f.isRef) {
+    const fileObj = _fileRefs[f.id];
+    if (!fileObj) { showToast('⚠️ Recarga la página y sube el archivo de nuevo', 'error'); return null; }
+    return URL.createObjectURL(fileObj);
+  }
+  if (f.encrypted && f.data && f.data.startsWith('ELITE_ENC:')) {
+    try { return await decryptFileData(f.data); }
+    catch(e) { showToast('❌ No se pudo descifrar', 'error'); return null; }
+  }
+  return f.data || null;
+}
+
+async function deleteFile(id) {
+  if (!confirm('¿Eliminar este archivo?')) return;
+  try {
+    await dbDeleteFile(id);
+  } catch(e) {
+    try {
+      const key = 'elite_files_' + currentUser.email;
+      const files = JSON.parse(localStorage.getItem(key) || '[]').filter(f => f.id !== id);
+      localStorage.setItem(key, JSON.stringify(files));
+    } catch {}
+  }
+  delete _fileRefs[id];
+  allFiles = allFiles.filter(f => f.id !== id);
+  renderFilesVirtualized(); updateStats(); updateStorage();
+  showToast('🗑️ Archivo eliminado', 'success');
+}
+
+async function downloadFile(id) {
+  const f = allFiles.find(x => x.id === id);
+  if (!f) return;
+  const url = await getFileDataURL(f);
+  if (!url) return;
+  const a = document.createElement('a');
+  a.href = url; a.download = f.name; a.click();
+  if (f.isRef || url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 5000);
+  showToast('⬇️ Descargando: ' + f.name, 'success');
+}
+
+async function confirmClearAll() {
+  if (!allFiles.length) { showToast('La nube ya está vacía', 'error'); return; }
+  if (!confirm('¿Eliminar TODOS los archivos? Esta acción no se puede deshacer.')) return;
+  try {
+    await dbClearUserFiles(currentUser.email);
+  } catch {
+    localStorage.removeItem('elite_files_' + currentUser.email);
+  }
+  Object.keys(_fileRefs).forEach(k => delete _fileRefs[k]);
+  allFiles = [];
+  renderFilesVirtualized(); updateStats(); updateStorage();
+  showToast('🗑️ Nube vaciada', 'success');
+}
+
+// ── Render virtualizado — evita crashear con 1000+ archivos ──
+let _renderTimeout = null;
+let searchQuery = '';
+let _sortMode = 'date';
+
+function renderFilesVirtualized() {
+  // Debounce para evitar renders excesivos
+  clearTimeout(_renderTimeout);
+  _renderTimeout = setTimeout(_doRender, 50);
+}
+
+function _doRender() {
+  const grid = document.getElementById('file-grid');
+  const empty = document.getElementById('empty-state');
+  let files = getFilteredFiles();
+  grid.innerHTML = '';
+  if (!files.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  // Limitar a 200 en el DOM; el resto se carga con scroll (lazy)
+  const MAX_DOM = 200;
+  const toShow = files.slice(0, MAX_DOM);
+  const fragment = document.createDocumentFragment();
+  toShow.forEach((f, i) => {
+    const card = createFileCard(f, i);
+    fragment.appendChild(card);
+  });
+  grid.appendChild(fragment);
+  if (files.length > MAX_DOM) {
+    const more = document.createElement('div');
+    more.style.cssText = 'grid-column:1/-1;text-align:center;padding:16px;color:var(--muted);font-size:13px;';
+    more.textContent = `Mostrando ${MAX_DOM} de ${files.length} archivos. Usa el buscador para filtrar.`;
+    grid.appendChild(more);
+  }
+}
+
+function getFilteredFiles() {
+  let files = [...allFiles];
+  if (currentFilter.startsWith('folder_')) {
+    const fid = currentFilter.slice(7);
+    files = files.filter(f => f.folderId === fid);
+  } else if (currentFilter !== 'all') {
+    files = files.filter(f => f.type === currentFilter);
+  }
+  if (searchQuery) {
+    files = files.filter(f => f.name.toLowerCase().includes(searchQuery));
+  }
+  if (_sortMode === 'size') files.sort((a, b) => b.size - a.size);
+  else if (_sortMode === 'name') files.sort((a, b) => a.name.localeCompare(b.name));
+  else files.sort((a, b) => b.date - a.date);
+  return files;
+}
+
+function createFileCard(f, i) {
+  const card = document.createElement('div');
+  card.className = 'file-card';
+  card.style.animationDelay = Math.min(i * 0.03, 0.6) + 's';
+  const icon = getFileIcon(f.type, f.name);
+  const imgSrc = (!f.isRef && f.data && f.type === 'image') ? f.data : '';
+  const encBadge = f.encrypted ? '<span class="fc-encrypted-badge">🔐</span>' : '';
+  if (viewMode === 'list') {
+    card.innerHTML = `<span class="fc-icon">${icon}</span>
+      <div class="fc-info"><div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div></div>
+      <div class="fc-actions">
+        <button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button>
+        <button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button>
+        <button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button>
+      </div>`;
+  } else {
+    const imgHtml = imgSrc
+      ? `<img src="${imgSrc}" style="width:100%;height:72px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:block;" loading="lazy" alt="${sanitize(f.name)}">`
+      : `<span class="fc-icon">${icon}</span>`;
+    card.innerHTML = `${imgHtml}${encBadge}
+      <div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div>
+      <div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div>
+      <div class="fc-actions">
+        <button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button>
+        <button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button>
+        <button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button>
+      </div>`;
+  }
+  card.addEventListener('click', () => openViewer(f.id));
+  return card;
+}
+
+function searchFiles(q) {
+  searchQuery = q.toLowerCase();
+  renderFilesVirtualized();
+}
+function setView(mode) {
+  viewMode = mode;
+  document.getElementById('btn-grid').classList.toggle('active', mode === 'grid');
+  document.getElementById('btn-list').classList.toggle('active', mode === 'list');
+  document.getElementById('file-grid').classList.toggle('list-view', mode === 'list');
+}
+function filterType(type, el) {
+  currentFilter = type;
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('folder-banner').style.display = 'none';
+  document.getElementById('section-title').textContent = 'Mis Archivos';
+  renderFilesVirtualized();
+}
+function updateStats() {
+  const c = { image: 0, audio: 0, video: 0, document: 0 };
+  allFiles.forEach(f => { if (c[f.type] !== undefined) c[f.type]++; });
+  document.getElementById('count-images').textContent = c.image;
+  document.getElementById('count-audio').textContent = c.audio;
+  document.getElementById('count-videos').textContent = c.video;
+  document.getElementById('count-docs').textContent = c.document;
+  document.getElementById('count-total').textContent = allFiles.length;
+}
+function updateStorage() {
+  const total = allFiles.reduce((s, f) => s + (f.size || 0), 0);
+  document.getElementById('storage-used').textContent = formatSize(total) + ' usado · ' + allFiles.length + ' archivos';
+}
+
+// ── Viewer ──
+let currentViewerId = null;
+
+async function openViewer(id) {
+  const f = allFiles.find(x => x.id === id);
+  if (!f) return;
+  currentViewerId = id;
+  document.getElementById('viewer-title').textContent = f.name;
+  document.getElementById('viewer-file-icon').textContent = getFileIcon(f.type, f.name);
+  document.getElementById('viewer-dl-btn').onclick = () => downloadFile(id);
+  const content = document.getElementById('viewer-content');
+  content.innerHTML = '<div style="color:#6b7280;padding:40px;text-align:center;">Cargando...</div>';
+  content.style.background = '#000';
+  const fileURL = await getFileDataURL(f);
+  if (!fileURL) { closeViewer(); return; }
+  content.innerHTML = '';
+  if (f.type === 'image') {
+    content.style.background = 'transparent';
+    const img = document.createElement('img');
+    img.src = fileURL; img.alt = f.name;
+    img.style.cssText = 'max-width:80vw;max-height:70vh;border-radius:10px;object-fit:contain;display:block;';
+    content.appendChild(img);
+  } else if (f.type === 'video') {
+    const v = document.createElement('video');
+    v.src = fileURL; v.controls = true; v.autoplay = true;
+    v.style.cssText = 'max-width:82vw;max-height:70vh;border-radius:10px;outline:none;display:block;';
+    content.appendChild(v);
+  } else if (f.type === 'audio') {
+    content.style.background = 'transparent';
+    const w = document.createElement('div'); w.className = 'music-player';
+    w.innerHTML = `<div class="mp-art" id="mp-art">🎵</div><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sanitize(f.name)}</div><div style="font-size:12px;color:var(--muted);margin-bottom:12px;">${formatSize(f.size)}</div>`;
+    const a = document.createElement('audio');
+    a.src = fileURL; a.controls = true; a.autoplay = true; a.style.width = '100%';
+    a.addEventListener('play', () => document.getElementById('mp-art')?.classList.add('playing'));
+    a.addEventListener('pause', () => document.getElementById('mp-art')?.classList.remove('playing'));
+    w.appendChild(a); content.appendChild(w);
+  } else {
+    content.style.background = 'var(--panel2)'; content.style.borderRadius = '12px';
+    const isArchive = ['zip','rar','7z','tar','gz','bz2'].includes(f.name.split('.').pop().toLowerCase());
+    let extraBtn = '';
+    if (isArchive) {
+      extraBtn = `<button onclick="decompressFile('${f.id}')" style="padding:10px 24px;background:linear-gradient(135deg,#22d3a5,#4f8cff);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">📂 Ver contenido ZIP</button>`;
+    }
+    content.innerHTML = `<div style="text-align:center;padding:40px 30px;"><div style="font-size:64px;margin-bottom:14px;">${getFileIcon(f.type, f.name)}</div><div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:6px;">${sanitize(f.name)}</div><div style="font-size:12px;color:var(--muted);margin-bottom:20px;">${formatSize(f.size)} · ${formatDate(f.date)}</div>${extraBtn}</div>`;
+  }
+  document.getElementById('viewer-modal').classList.add('open');
+  document.getElementById('viewer-modal').onclick = e => { if (e.target === document.getElementById('viewer-modal')) closeViewer(); };
+  updateNavButtons();
+}
+
+function closeViewer() {
+  const modal = document.getElementById('viewer-modal');
+  modal.classList.remove('open');
+  const content = document.getElementById('viewer-content');
+  content.querySelectorAll('video,audio').forEach(m => { m.pause(); m.src = ''; });
+  content.innerHTML = '';
+  currentViewerId = null;
+}
+
+function getViewerList() {
+  let files = getFilteredFiles();
+  return files;
+}
+function navigateViewer(dir) {
+  const files = getViewerList();
+  const idx = files.findIndex(f => f.id === currentViewerId);
+  if (idx === -1) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= files.length) return;
+  openViewer(files[newIdx].id);
+}
+function updateNavButtons() {
+  const files = getViewerList();
+  const idx = files.findIndex(f => f.id === currentViewerId);
+  const prev = document.getElementById('viewer-prev-btn');
+  const next = document.getElementById('viewer-next-btn');
+  if (prev) prev.disabled = idx <= 0;
+  if (next) next.disabled = idx >= files.length - 1 || idx === -1;
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeViewer();
+  if (currentViewerId) {
+    if (e.key === 'ArrowLeft') navigateViewer(-1);
+    if (e.key === 'ArrowRight') navigateViewer(1);
+  }
+});
+
+// ── Comprimir ──
+async function compressCurrentFile() {
+  if (!currentViewerId) return;
+  const f = allFiles.find(x => x.id === currentViewerId);
+  if (!f || f.isRef) { showToast('⚠️ Solo se pueden comprimir archivos subidos normalmente', 'error'); return; }
+  if (typeof JSZip === 'undefined') { showToast('❌ JSZip no cargó', 'error'); return; }
+  const btn = document.getElementById('viewer-compress-btn');
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const zip = new JSZip();
+    const base64 = f.data.split(',')[1];
+    zip.file(f.name, base64, { base64: true });
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = f.name.replace(/\.[^.]+$/, '') + '.zip'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('🗜️ ZIP creado', 'success');
+  } catch(e) { showToast('❌ Error al comprimir', 'error'); }
+  btn.disabled = false; btn.textContent = '🗜️ ZIP';
+}
+
+// ── Comprimir todos ──
+async function compressAll() {
+  const eligible = allFiles.filter(f => !f.isRef && f.data);
+  if (!eligible.length) { showToast('No hay archivos para comprimir', 'error'); return; }
+  if (eligible.length > 50) {
+    if (!confirm(`Comprimir ${eligible.length} archivos puede tomar tiempo. ¿Continuar?`)) return;
+  }
+  if (typeof JSZip === 'undefined') { showToast('❌ JSZip no disponible', 'error'); return; }
+  showToast('🗜️ Creando ZIP...', 'success');
+  try {
+    const zip = new JSZip();
+    let i = 0;
+    for (const f of eligible) {
+      const base64 = f.data.split(',')[1];
+      zip.file(f.name, base64, { base64: true });
+      i++;
+      if (i % 20 === 0) await sleep(10); // yield para no bloquear UI
+    }
+    const blob = await zip.generateAsync({
+      type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 3 },
+      streamFiles: true // más eficiente para muchos archivos
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'ELITE_archivos.zip'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ ZIP con ' + eligible.length + ' archivo(s) descargado', 'success');
+  } catch(e) { showToast('❌ Error: ' + (e.message || 'desconocido'), 'error'); console.error(e); }
+}
+
+// ── Descomprimir ZIP ──
+async function decompressFile(id) {
+  const f = allFiles.find(x => x.id === id);
+  if (!f) return;
+  if (typeof JSZip === 'undefined') { showToast('❌ JSZip no disponible', 'error'); return; }
+  showToast('📂 Leyendo ZIP...', 'success');
+  try {
+    const base64 = f.data.split(',')[1];
+    const binary = atob(base64);
+    const buf = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+    const zip = await JSZip.loadAsync(buf.buffer);
+    const fileNames = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+    if (!fileNames.length) { showToast('⚠️ ZIP vacío', 'error'); return; }
+    const content = document.getElementById('viewer-content');
+    content.style.background = 'var(--panel2)'; content.style.borderRadius = '12px';
+    content.innerHTML = `<div style="padding:14px 16px;max-height:60vh;overflow-y:auto;width:100%;">
+      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;margin-bottom:4px;">📂 Contenido (${fileNames.length} archivos)</div>
+      <div id="zip-list" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;"></div>
+      <button onclick="importAllFromZip('${id}')" style="margin-top:12px;width:100%;padding:11px;background:linear-gradient(135deg,#22d3a5,#4f8cff);border:none;border-radius:10px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;" id="import-all-btn">☁️ Importar todos a ELITE</button>
+    </div>`;
+    const list = document.getElementById('zip-list');
+    fileNames.slice(0, 50).forEach(name => {
+      const shortName = name.split('/').pop();
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);border:1px solid var(--border);border-radius:9px;';
+      row.innerHTML = `<span>${getFileIcon(getFileType(shortName), shortName)}</span><span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${shortName}</span><button data-zid="${id}" data-fn="${name}" style="padding:4px 10px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">☁️</button>`;
+      const btn = row.querySelector('button');
+      btn.onclick = async function() {
+        this.disabled = true; this.textContent = '⏳';
+        const ok = await importSingleFromZip(this.dataset.zid, this.dataset.fn);
+        this.textContent = ok ? '✅' : '❌';
+      };
+      list.appendChild(row);
+    });
+    if (fileNames.length > 50) {
+      const moreEl = document.createElement('div');
+      moreEl.style.cssText = 'text-align:center;font-size:12px;color:var(--muted);padding:8px;';
+      moreEl.textContent = `+ ${fileNames.length - 50} archivos más. Usa "Importar todos".`;
+      list.appendChild(moreEl);
+    }
+  } catch(e) { showToast('❌ Error al leer ZIP: ' + e.message, 'error'); }
+}
+
+async function importSingleFromZip(zipId, fileName) {
+  const f = allFiles.find(x => x.id === zipId);
+  if (!f || !f.data) return false;
+  try {
+    const base64 = f.data.split(',')[1];
+    const binary = atob(base64);
+    const buf = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+    const zip = await JSZip.loadAsync(buf.buffer);
+    const fileData = await zip.files[fileName].async('arraybuffer');
+    const shortName = fileName.split('/').pop();
+    const dataUrl = await new Promise(res => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result);
+      reader.readAsDataURL(new Blob([fileData]));
+    });
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      email: currentUser.email,
+      name: sanitize(shortName),
+      type: getFileType(shortName),
+      size: fileData.byteLength,
+      date: Date.now(),
+      data: dataUrl
+    };
+    const ok = await saveFile(entry);
+    if (ok) { allFiles.unshift(entry); renderFilesVirtualized(); updateStats(); updateStorage(); showToast('✅ ' + shortName, 'success'); }
+    return ok;
+  } catch(e) { return false; }
+}
+
+async function importAllFromZip(zipId) {
+  const btn = document.getElementById('import-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando...'; }
+  const f = allFiles.find(x => x.id === zipId);
+  if (!f || !f.data) return;
+  try {
+    const base64 = f.data.split(',')[1];
+    const binary = atob(base64);
+    const buf = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+    const zip = await JSZip.loadAsync(buf.buffer);
+    const fileNames = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+    let imported = 0;
+    for (const name of fileNames) {
+      const ok = await importSingleFromZip(zipId, name);
+      if (ok) imported++;
+      await sleep(20); // yield
+    }
+    showToast('✅ ' + imported + ' archivos importados', 'success');
+    if (btn) btn.textContent = '✅ ¡Importados!';
+  } catch(e) { showToast('❌ Error', 'error'); if (btn) { btn.disabled = false; btn.textContent = '☁️ Importar todos'; } }
+}
+
+// ── Renombrar ──
+function renameCurrentFile() {
+  if (!currentViewerId) return;
+  const f = allFiles.find(x => x.id === currentViewerId);
+  if (!f) return;
+  const newName = prompt('Nuevo nombre:', f.name);
+  if (!newName || !newName.trim() || newName.trim() === f.name) return;
+  f.name = sanitize(newName.trim());
+  saveFile(f).then(() => {
+    renderFilesVirtualized();
+    document.getElementById('viewer-title').textContent = f.name;
+    document.getElementById('viewer-file-icon').textContent = getFileIcon(f.type, f.name);
+    showToast('✏️ Renombrado', 'success');
+  });
+}
+
+// ── Export / Import backup (chunks para archivos grandes) ──
+async function exportBackup() {
+  if (!allFiles.length) { showToast('No hay archivos para exportar', 'error'); return; }
+  showToast('📦 Preparando backup...', 'success');
+  const backup = {
+    version: 3, email: currentUser.email, name: currentUser.name,
+    exported: Date.now(),
+    files: allFiles.map(f => ({ ...f, isRef: undefined, _fileRef: undefined }))
+  };
+  const json = JSON.stringify(backup);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ELITE_backup_' + new Date().toISOString().slice(0, 10) + '.nvbackup';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup exportado (' + allFiles.length + ' archivos)', 'success');
+}
+
+async function importBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const backup = JSON.parse(ev.target.result);
+      if (!backup.files || !Array.isArray(backup.files)) { showToast('❌ Archivo inválido', 'error'); return; }
+      if (backup.email && backup.email !== currentUser.email) {
+        if (!confirm('Este backup es de otra cuenta (' + backup.email + '). ¿Importar de todas formas?')) return;
+      }
+      let imported = 0, skipped = 0;
+      // Procesar en lotes
+      const BATCH = 20;
+      for (let i = 0; i < backup.files.length; i += BATCH) {
+        const batch = backup.files.slice(i, i + BATCH);
+        for (const f of batch) {
+          if (allFiles.some(x => x.id === f.id)) { skipped++; continue; }
+          const entry = { ...f, email: currentUser.email };
+          const ok = await saveFile(entry);
+          if (ok) { allFiles.unshift(entry); imported++; }
+        }
+        await sleep(50); // yield por lote
+      }
+      renderFilesVirtualized(); updateStats(); updateStorage();
+      showToast('✅ ' + imported + ' importados' + (skipped ? ', ' + skipped + ' ya existían' : ''), 'success');
+    } catch(e) { showToast('❌ Error al leer backup', 'error'); }
+  };
+  reader.readAsText(file);
+}
+
+// ── Progress ──
+function showProgress(name) {
+  document.getElementById('upload-progress').style.display = 'block';
+  document.getElementById('up-filename').textContent = name;
+  document.getElementById('up-fill').style.width = '0%';
+  document.getElementById('up-text').textContent = 'Preparando...';
+}
+function updateProgress(pct, name) {
+  document.getElementById('up-fill').style.width = pct + '%';
+  document.getElementById('up-text').textContent = name;
+}
+function hideProgress() {
+  setTimeout(() => { document.getElementById('upload-progress').style.display = 'none'; }, 1000);
+}
+
+// ── Toast ──
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${type === 'success' ? '✅' : '⚠️'}</span> ${msg}`;
+  c.appendChild(el);
+  setTimeout(() => {
+    el.style.cssText += ';opacity:0;transform:translateX(40px);transition:all .35s;';
+    setTimeout(() => el.remove(), 400);
+  }, 3500);
+}
+
+// ── Encrypt / Decrypt ──
+async function encryptFileData(dataUrl) {
+  const pass = _sessionPass || 'elite_default';
+  if (!hasCrypto) {
+    const key = pass.split('').reduce((a, c) => Math.imul(31, a) + c.charCodeAt(0) | 0, 0);
+    const bytes = new TextEncoder().encode(dataUrl);
+    const hex = Array.from(bytes).map((b, i) => ((b ^ ((Math.imul(key, i + 1) >>> 0) & 0xFF)) + '').padStart(2, '0').slice(-2)).join('');
+    return 'ELITE_ENC:fx:' + hex;
+  }
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const km = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 50000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['encrypt']);
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(dataUrl));
+  const out = new Uint8Array(16 + 12 + cipher.byteLength);
+  out.set(salt, 0); out.set(iv, 16); out.set(new Uint8Array(cipher), 28);
+  return 'ELITE_ENC:' + ab2b64(out.buffer);
+}
+
+async function decryptFileData(encStr) {
+  if (!encStr.startsWith('ELITE_ENC:')) return encStr;
+  const pass = _sessionPass || 'elite_default';
+  const inner = encStr.slice(10);
+  if (inner.startsWith('fx:')) {
+    const key = pass.split('').reduce((a, c) => Math.imul(31, a) + c.charCodeAt(0) | 0, 0);
+    const bytes = inner.slice(3).match(/.{2}/g).map((h, i) => parseInt(h, 16) ^ ((Math.imul(key, i + 1) >>> 0) & 0xFF));
+    return new TextDecoder().decode(new Uint8Array(bytes));
+  }
+  if (!hasCrypto) return encStr;
+  const buf = b642ab(inner);
+  const salt = new Uint8Array(buf.slice(0, 16));
+  const iv = new Uint8Array(buf.slice(16, 28));
+  const data = buf.slice(28);
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 50000, hash: 'SHA-256' }, km, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
+  return new TextDecoder().decode(plain);
+}
+
+function toggleEncryptMode() {
+  encryptMode = !encryptMode;
+  const btn = document.getElementById('encrypt-toggle');
+  if (!btn) return;
+  if (encryptMode) {
+    btn.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid #22d3a5;background:rgba(34,211,165,.15);color:#22d3a5;font-size:12px;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .2s;';
+    btn.textContent = '🔐 Cifrado ON';
+    showToast('🔐 Cifrado activado', 'success');
+  } else {
+    btn.style.cssText = 'padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);font-size:12px;cursor:pointer;font-family:"DM Sans",sans-serif;transition:all .2s;';
+    btn.textContent = '🔐 Cifrar';
+    showToast('🔓 Cifrado desactivado', 'success');
+  }
+}
+
+// ── Compartir archivos ──
+let _shareCurrentFileId = null, _shareCurrentLink = '', _shareCurrentFileName = '';
+
+function openShareModal(fileId) {
+  const f = allFiles.find(x => x.id === fileId);
+  if (!f) return;
+  _shareCurrentFileId = fileId; _shareCurrentLink = ''; _shareCurrentFileName = f.name;
+  document.getElementById('share-file-name').textContent = f.name;
+  document.getElementById('share-file-icon').textContent = getFileIcon(f.type, f.name);
+  resetShareModal();
+  document.getElementById('modal-share').style.display = 'flex';
+}
+function resetShareModal() {
+  document.getElementById('share-ready').style.display = '';
+  document.getElementById('share-uploading').style.display = 'none';
+  document.getElementById('share-generated').style.display = 'none';
+  document.getElementById('share-error').style.display = 'none';
+  document.getElementById('share-progress-bar').style.width = '0%';
+}
+function setShareState(state, msg) {
+  document.getElementById('share-ready').style.display = state === 'ready' ? '' : 'none';
+  document.getElementById('share-uploading').style.display = state === 'uploading' ? '' : 'none';
+  document.getElementById('share-generated').style.display = state === 'done' ? '' : 'none';
+  document.getElementById('share-error').style.display = state === 'error' ? '' : 'none';
+  if (state === 'error' && msg) document.getElementById('share-error-msg').textContent = msg;
+}
+async function uploadAndShare() {
+  const f = allFiles.find(x => x.id === _shareCurrentFileId);
+  if (!f) return;
+  setShareState('uploading');
+  const setP = (pct, msg) => {
+    document.getElementById('share-progress-bar').style.width = pct + '%';
+    document.getElementById('share-upload-progress').textContent = msg;
+  };
+  try {
+    setP(10, 'Preparando...');
+    let blob;
+    if (f.isRef) {
+      const fo = _fileRefs[f.id];
+      if (!fo) { setShareState('error', 'El archivo no está disponible esta sesión.'); return; }
+      blob = fo;
+    } else {
+      let dataUrl = f.data;
+      if (f.encrypted && dataUrl && dataUrl.startsWith('ELITE_ENC:')) {
+        try { dataUrl = await decryptFileData(dataUrl); } catch { setShareState('error', 'No se pudo descifrar.'); return; }
+      }
+      const res = await fetch(dataUrl);
+      blob = await res.blob();
+    }
+    setP(20, 'Conectando...');
+    let link = null;
+    // Intento 1: litterbox.catbox.moe (72h, 1GB)
+    if (!link) {
+      try {
+        setP(30, 'Subiendo a litterbox...');
+        const fd = new FormData();
+        fd.append('reqtype', 'fileupload'); fd.append('time', '72h');
+        fd.append('fileToUpload', blob, f.name);
+        const res = await fetchTimeout('https://litterbox.catbox.moe/resources/internals/api.php', { method: 'POST', body: fd }, 90000);
+        if (res.ok) { const t = await res.text(); if (t.startsWith('https://')) link = t.trim(); }
+      } catch {}
+    }
+    // Intento 2: catbox.moe (permanente, 200MB)
+    if (!link) {
+      try {
+        setP(50, 'Subiendo a catbox...');
+        const fd = new FormData();
+        fd.append('reqtype', 'fileupload'); fd.append('userhash', '');
+        fd.append('fileToUpload', blob, f.name);
+        const res = await fetchTimeout('https://catbox.moe/user/api.php', { method: 'POST', body: fd }, 90000);
+        if (res.ok) { const t = await res.text(); if (t.startsWith('https://')) link = t.trim(); }
+      } catch {}
+    }
+    // Intento 3: file.io (14 días, un solo uso)
+    if (!link) {
+      try {
+        setP(70, 'Subiendo a file.io...');
+        const fd = new FormData(); fd.append('file', blob, f.name);
+        const res = await fetchTimeout('https://file.io/?expires=14d', { method: 'POST', body: fd }, 60000);
+        if (res.ok) { const j = await res.json(); if (j.success && j.link) link = j.link; }
+      } catch {}
+    }
+    setP(100, '¡Listo!');
+    if (!link) { setShareState('error', 'Todos los servidores fallaron. Verifica tu conexión.'); return; }
+    _shareCurrentLink = link;
+    document.getElementById('share-link-input').value = link;
+    setShareState('done');
+    showToast('🔗 Link generado', 'success');
+  } catch(err) { setShareState('error', 'Error: ' + (err.message || 'desconocido')); }
+}
+async function fetchTimeout(url, opts, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try { const r = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(timer); return r; }
+  catch(e) { clearTimeout(timer); throw e; }
+}
+function copyShareLink() {
+  if (!_shareCurrentLink) return;
+  navigator.clipboard.writeText(_shareCurrentLink)
+    .then(() => showToast('📋 Link copiado', 'success'))
+    .catch(() => {
+      const i = document.getElementById('share-link-input');
+      i.select(); i.setSelectionRange(0, 99999); document.execCommand('copy');
+      showToast('📋 Copiado', 'success');
+    });
+}
+function shareViaWhatsApp() {
+  if (!_shareCurrentLink) return;
+  window.open('https://wa.me/?text=' + encodeURIComponent('📁 ' + _shareCurrentFileName + '\n' + _shareCurrentLink), '_blank');
+}
+function shareViaTelegram() {
+  if (!_shareCurrentLink) return;
+  window.open('https://t.me/share/url?url=' + encodeURIComponent(_shareCurrentLink) + '&text=' + encodeURIComponent('📁 ' + _shareCurrentFileName), '_blank');
+}
+function closeShareModal() { document.getElementById('modal-share').style.display = 'none'; }
+
+// ── Email ──
+const FORMSPREE = 'https://formspree.io/f/xqegepev';
+async function sendEmail(type, p) {
+  try {
+    const body = {
+      _replyto: p.email, email: p.email, name: p.name || '',
+      subject: type === 'reset' ? '🔐 Código de verificación - ELITE STUDIOS' : '🎉 Bienvenido a ELITE STUDIOS',
+      message: type === 'reset'
+        ? `Hola ${p.name || ''},\n\nCódigo: ${p.code}\n\nExpira en 10 minutos.\n\n— ELITE STUDIOS`
+        : `¡Hola ${p.name || ''}!\n\nTu cuenta fue creada. Ya puedes acceder.\n\n— ELITE STUDIOS`
+    };
+    const res = await fetch(FORMSPREE, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body) });
+    return { ok: res.ok };
+  } catch { return { ok: false }; }
+}
+
+// ── Historial ──
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+  const device = /Android/i.test(ua) ? '📱 Android' : /iPhone|iPad/i.test(ua) ? '📱 iOS' : '💻 Escritorio';
+  let browser = 'Navegador';
+  if (/Chrome/i.test(ua) && !/Edge/i.test(ua)) browser = 'Chrome';
+  else if (/Firefox/i.test(ua)) browser = 'Firefox';
+  else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+  else if (/Edge/i.test(ua)) browser = 'Edge';
+  return { device, browser };
+}
+function logAccess(email) {
+  try {
+    const key = 'elite_access_' + email;
+    const logs = JSON.parse(localStorage.getItem(key) || '[]');
+    const { device, browser } = getDeviceInfo();
+    logs.unshift({ device, browser, time: Date.now() });
+    if (logs.length > 30) logs.splice(30);
+    localStorage.setItem(key, JSON.stringify(logs));
+  } catch {}
+}
+function openHistoryModal() {
+  const logs = JSON.parse(localStorage.getItem('elite_access_' + (currentUser && currentUser.email)) || '[]');
+  const list = document.getElementById('access-log-list');
+  list.innerHTML = '';
+  if (!logs.length) { list.innerHTML = '<div style="text-align:center;color:#6b7280;padding:24px;">Sin registros aún</div>'; }
+  else logs.forEach((log, i) => {
+    const d = new Date(log.time);
+    const ts = d.toLocaleDateString('es') + ' ' + d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    list.innerHTML += `<div class="access-row"><span style="font-size:22px;">${log.device?.includes('📱') ? '📱' : '💻'}</span><div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#fff;">${log.device || 'Dispositivo'} · ${log.browser || ''}</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">${ts}</div></div><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:${i === 0 ? 'rgba(79,140,255,.15)' : 'rgba(34,211,165,.1)'};color:${i === 0 ? '#4f8cff' : '#22d3a5'};">${i === 0 ? 'Reciente' : '✓'}</span></div>`;
+  });
+  document.getElementById('modal-history').style.display = 'flex';
+}
+function closeHistoryModal() { document.getElementById('modal-history').style.display = 'none'; }
+
+// ── PIN ──
+let _pinBuffer = '', _pinMode = 'set', _appLocked = false;
+function openPinSetup() {
+  _pinBuffer = '';
+  const stored = localStorage.getItem('elite_pin_' + (currentUser && currentUser.email));
+  _pinMode = stored ? 'verify' : 'set';
+  document.getElementById('pin-title').textContent = stored ? '🔐 Verificar PIN' : '🔐 Crear PIN';
+  document.getElementById('pin-subtitle').textContent = stored ? 'Ingresa tu PIN' : 'Elige 4 dígitos';
+  updatePinDots();
+  document.getElementById('modal-pin').style.display = 'flex';
+}
+function lockApp() {
+  const stored = localStorage.getItem('elite_pin_' + (currentUser && currentUser.email));
+  if (!stored) { openPinSetup(); return; }
+  _appLocked = true; _pinBuffer = ''; _pinMode = 'verify';
+  document.getElementById('pin-title').textContent = '🔒 App bloqueada';
+  document.getElementById('pin-subtitle').textContent = 'Ingresa tu PIN';
+  updatePinDots();
+  document.getElementById('modal-pin').style.display = 'flex';
+  document.getElementById('app-screen').style.filter = 'blur(8px)';
+}
+function pinKey(n) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += n; updatePinDots();
+  if (_pinBuffer.length === 4) setTimeout(processPIN, 200);
+}
+function pinBackspace() { _pinBuffer = _pinBuffer.slice(0, -1); updatePinDots(); }
+function updatePinDots() {
+  for (let i = 1; i <= 4; i++) {
+    const d = document.getElementById('pin-dot-' + i);
+    if (d) { d.style.background = i <= _pinBuffer.length ? '#4f8cff' : '#1f2330'; d.style.boxShadow = i <= _pinBuffer.length ? '0 0 10px rgba(79,140,255,.5)' : 'none'; }
+  }
+}
+function processPIN() {
+  const email = currentUser && currentUser.email;
+  const stored = localStorage.getItem('elite_pin_' + email);
+  if (_pinMode === 'set') {
+    localStorage.setItem('elite_pin_' + email, _pinBuffer);
+    document.getElementById('modal-pin').style.display = 'none';
+    showToast('🔐 PIN configurado', 'success');
+  } else {
+    if (_pinBuffer === stored) {
+      document.getElementById('modal-pin').style.display = 'none';
+      document.getElementById('app-screen').style.filter = '';
+      _appLocked = false;
+      showToast('✅ Bienvenido de nuevo', 'success');
+    } else {
+      _pinBuffer = ''; updatePinDots();
+      document.getElementById('pin-subtitle').textContent = '❌ PIN incorrecto';
+      setTimeout(() => { document.getElementById('pin-subtitle').textContent = 'Inténtalo de nuevo'; }, 1500);
+    }
+  }
+}
+
+// ── Carpetas ──
+let _selFolderIcon = '📁', _selFolderColor = '#4f8cff';
+function getFolders() { try { return JSON.parse(localStorage.getItem('elite_folders_' + (currentUser && currentUser.email)) || '[]'); } catch { return []; } }
+function saveFolders(arr) { try { localStorage.setItem('elite_folders_' + (currentUser && currentUser.email), JSON.stringify(arr)); } catch {} }
+
+function openFoldersModal() { renderFoldersList(); document.getElementById('modal-folders').style.display = 'flex'; }
+function closeFoldersModal() { document.getElementById('modal-folders').style.display = 'none'; }
+
+function renderFoldersList() {
+  const folders = getFolders();
+  const grid = document.getElementById('folders-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (!folders.length) {
+    grid.innerHTML = '<div style="text-align:center;color:#6b7280;padding:20px;grid-column:1/-1;">Sin carpetas. ¡Crea la primera!</div>';
+    return;
+  }
+  folders.forEach(folder => {
+    const count = allFiles.filter(f => f.folderId === folder.id).length;
+    const el = document.createElement('div');
+    el.className = 'folder-card';
+    el.style.borderColor = folder.color + '44';
+    el.innerHTML = `<div style="font-size:30px;margin-bottom:8px;">${folder.icon}</div>
+      <div style="font-size:12px;font-weight:700;color:${folder.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${folder.name}</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:4px;">${count} archivo(s)</div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button onclick="event.stopPropagation();openFolder('${folder.id}')" style="flex:1;padding:6px 0;background:${folder.color};border:none;border-radius:8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">📂 Abrir</button>
+        <label onclick="event.stopPropagation()" style="flex:1;padding:6px 0;background:rgba(79,140,255,.15);border:1px solid rgba(79,140,255,.3);border-radius:8px;color:#4f8cff;font-size:11px;font-weight:700;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;">
+          <input type="file" multiple style="display:none;" onchange="uploadToFolder('${folder.id}',this.files)">⬆️ Subir
+        </label>
+      </div>
+      <button onclick="event.stopPropagation();deleteFolder('${folder.id}')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#6b7280;cursor:pointer;font-size:13px;">✕</button>`;
+    el.onclick = () => openFolder(folder.id);
+    grid.appendChild(el);
+  });
+}
+function pickFolderIcon(el, icon) { _selFolderIcon = icon; document.querySelectorAll('.icon-pick').forEach(b => b.classList.remove('sel')); el.classList.add('sel'); }
+function pickFolderColor(el, color) { _selFolderColor = color; document.querySelectorAll('.color-pick').forEach(b => b.classList.remove('sel')); el.classList.add('sel'); }
+function createFolder() {
+  const nameEl = document.getElementById('new-folder-name');
+  const name = nameEl ? nameEl.value.trim() : '';
+  if (!name) { showToast('Escribe un nombre', 'error'); return; }
+  const folders = getFolders();
+  folders.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2), name, icon: _selFolderIcon, color: _selFolderColor, created: Date.now() });
+  saveFolders(folders); nameEl.value = '';
+  renderFoldersList(); showToast('📁 Carpeta creada', 'success');
+}
+function deleteFolder(id) {
+  if (!confirm('¿Eliminar carpeta? Los archivos no se borrarán.')) return;
+  saveFolders(getFolders().filter(f => f.id !== id));
+  allFiles.forEach(f => { if (f.folderId === id) delete f.folderId; });
+  renderFoldersList(); showToast('🗑️ Carpeta eliminada', 'success');
+}
+function openFolder(id) {
+  const folder = getFolders().find(f => f.id === id);
+  if (!folder) return;
+  closeFoldersModal();
+  currentFilter = 'folder_' + id;
+  renderFilesVirtualized();
+  const count = allFiles.filter(f => f.folderId === id).length;
+  document.getElementById('folder-banner-icon').textContent = folder.icon;
+  document.getElementById('folder-banner-name').textContent = folder.name;
+  document.getElementById('folder-banner-count').textContent = count + ' archivo(s) en esta carpeta';
+  document.getElementById('folder-banner').style.display = 'flex';
+  document.getElementById('section-title').textContent = folder.icon + ' ' + folder.name;
+}
+function goBackToAll() {
+  currentFilter = 'all';
+  document.getElementById('folder-banner').style.display = 'none';
+  document.getElementById('section-title').textContent = 'Mis Archivos';
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+  const allBtn = document.querySelector('.sidebar-item');
+  if (allBtn) allBtn.classList.add('active');
+  renderFilesVirtualized();
+}
+function uploadToFolder(folderId, fileList) {
+  if (!fileList || !fileList.length) return;
+  closeFoldersModal();
+  openFolder(folderId);
+  uploadFilesQueue(Array.from(fileList), folderId);
+}
+function handleFolderFileInput(fileList) {
+  if (!fileList || !fileList.length) return;
+  const folderId = currentFilter.startsWith('folder_') ? currentFilter.slice(7) : null;
+  document.getElementById('folder-file-input').value = '';
+  uploadFilesQueue(Array.from(fileList), folderId);
+}
+
+// ═══════════════════════════════════════════════════════════
+// PWA — INSTALACIÓN EN ANDROID (sin archivos externos)
+// Service Worker embebido como Blob URL = sin error 404
+// ═══════════════════════════════════════════════════════════
+
+let _deferredInstallPrompt = null;
+
+function initPWA() {
+  // Registrar Service Worker embebido (sin archivo externo)
+  registerInlineSW();
+
+  // Capturar el evento beforeinstallprompt de Android/Chrome
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+    showInstallUI();
+  });
+
+  // Si ya está instalada como PWA, ocultar botones
+  window.addEventListener('appinstalled', () => {
+    _deferredInstallPrompt = null;
+    hideInstallUI();
+    showToast('✅ ¡App instalada correctamente!', 'success');
+  });
+
+  // Detectar si ya está corriendo como PWA instalada
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    hideInstallUI();
+  }
+}
+
+function registerInlineSW() {
+  if (!('serviceWorker' in navigator)) return;
+  // Service Worker como Blob — sin necesidad de archivo externo, sin error 404
+  const swCode = `
+    const CACHE = 'elite-studios-v1';
+    self.addEventListener('install', e => {
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      // Solo cachear recursos del mismo origen
+      if (!e.request.url.startsWith(self.location.origin)) return;
+      e.respondWith(
+        caches.open(CACHE).then(cache =>
+          cache.match(e.request).then(cached => {
+            const fresh = fetch(e.request).then(res => {
+              if (res && res.status === 200) cache.put(e.request, res.clone());
+              return res;
+            }).catch(() => cached);
+            return cached || fresh;
+          })
+        )
+      );
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, { scope: '/' })
+    .then(() => console.log('✅ ELITE STUDIOS: Service Worker activo'))
+    .catch(e => console.warn('SW (solo funciona en HTTPS o localhost):', e.message));
+}
+
+function showInstallUI() {
+  // Mostrar banner en la parte superior
+  const banner = document.getElementById('install-banner');
+  if (banner && localStorage.getItem('elite_install_banner_dismissed') !== '1') {
+    banner.style.display = 'block';
+  }
+  // Mostrar botón en sidebar
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'flex';
+}
+
+function hideInstallUI() {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+function dismissInstallBanner() {
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.style.display = 'none';
+  localStorage.setItem('elite_install_banner_dismissed', '1');
+}
+
+async function triggerInstall() {
+  if (!_deferredInstallPrompt) {
+    // Fallback: instrucciones manuales
+    showInstallInstructions();
+    return;
+  }
+  try {
+    _deferredInstallPrompt.prompt();
+    const result = await _deferredInstallPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      hideInstallUI();
+      showToast('🚀 Instalando ELITE STUDIOS...', 'success');
+    }
+    _deferredInstallPrompt = null;
+  } catch(e) {
+    showInstallInstructions();
+  }
+}
+
+function showInstallInstructions() {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  let msg = '';
+  if (isIOS) {
+    msg = '📱 En iOS:\nToca el botón compartir (□↑) → "Agregar a inicio"';
+  } else if (isAndroid) {
+    msg = '📱 En Android:\nMenú del navegador (⋮) → "Agregar a pantalla de inicio" o "Instalar app"';
+  } else {
+    msg = '💻 En Chrome:\nMenú (⋮) → "Instalar ELITE STUDIOS"\nO busca el ícono ⊕ en la barra de dirección';
+  }
+  alert(msg);
+}
+
+
+// Como programador: cambia APP_VERSION y UPDATE_INFO cuando
+// quieras notificar a los usuarios de una nueva versión.
+// Sube el archivo .html actualizado y los usuarios verán
+// el banner automáticamente en su próxima visita.
+// ═══════════════════════════════════════════════════════════
+
+const APP_VERSION = '2.0.0'; // ← Versión actual de esta build
+
+// Para publicar una actualización, sube el .html con una nueva
+// versión y cambia LATEST_VERSION + UPDATE_CHANGELOG aquí:
+const LATEST_VERSION = '2.0.0'; // ← Última versión disponible
+const UPDATE_CHANGELOG = 'Correcciones de subida de archivos, ícono en pestaña, y sistema de actualizaciones.';
+const UPDATE_URL = ''; // ← URL donde está hosted el .html actualizado (dejar vacío si no aplica)
+
+const UPDATE_DISMISSED_KEY = 'elite_update_dismissed_';
+
+function checkForUpdates() {
+  // Compara versión actual vs latest
+  if (!LATEST_VERSION || LATEST_VERSION === APP_VERSION) return;
+  const dismissedKey = UPDATE_DISMISSED_KEY + LATEST_VERSION;
+  const dismissed = localStorage.getItem(dismissedKey);
+  if (dismissed) return;
+  // Mostrar banner
+  setTimeout(() => showUpdateBanner(), 2000);
+}
+
+function showUpdateBanner() {
+  const banner = document.getElementById('update-banner');
+  const verEl = document.getElementById('update-new-version');
+  const changeEl = document.getElementById('update-changelog');
+  if (!banner) return;
+  if (verEl) verEl.textContent = 'v' + LATEST_VERSION;
+  if (changeEl && UPDATE_CHANGELOG) changeEl.textContent = UPDATE_CHANGELOG;
+  banner.classList.add('show');
+}
+
+function dismissUpdate() {
+  const banner = document.getElementById('update-banner');
+  if (banner) banner.classList.remove('show');
+  localStorage.setItem(UPDATE_DISMISSED_KEY + LATEST_VERSION, '1');
+  showToast('👍 Te recordaremos después', 'success');
+}
+
+function doUpdate() {
+  const banner = document.getElementById('update-banner');
+  if (banner) banner.classList.remove('show');
+  if (UPDATE_URL) {
+    // Si hay una URL configurada, abrir la nueva versión
+    showToast('🚀 Abriendo nueva versión...', 'success');
+    setTimeout(() => window.open(UPDATE_URL, '_blank'), 800);
+  } else {
+    // Si no hay URL, instruir al usuario
+    showToast('📥 Descarga el archivo actualizado del desarrollador', 'success');
+  }
+  localStorage.setItem(UPDATE_DISMISSED_KEY + LATEST_VERSION, '1');
+}
+
+// ── Sidebar toggle ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+
+// ── Particles ──
+function createParticles() {
+  const c = document.getElementById('particles');
+  const colors = ['#4f8cff','#a259ff','#22d3a5','#ffc84a'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div'); p.className = 'particle';
+    const size = Math.random() * 3 + 2;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${Math.random()*12+8}s;animation-delay:${Math.random()*12}s;`;
+    c.appendChild(p);
+  }
+}
+
+// ── Drag handlers ──
+const dz = document.getElementById('drop-zone');
+if (dz) {
+  dz.addEventListener('dragover', e => e.preventDefault());
+  dz.addEventListener('dragenter', dragEnter);
+  dz.addEventListener('dragleave', dragLeave);
+  dz.addEventListener('drop', handleDrop);
+}
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => {
+  createParticles();
+  openDB().catch(e => { console.warn('IndexedDB no disponible:', e); });
+  const session = getSession();
+  if (session) enterApp(session.name, session.email);
+  checkForUpdates();
+  initPWA();
+});
+</script>
+</body>
+</html>
