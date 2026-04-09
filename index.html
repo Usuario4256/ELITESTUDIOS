@@ -1218,6 +1218,20 @@ function dbTx(storeName, mode, fn) {
 function dbPutFile(fileObj)  { return dbTx('files','readwrite', s => s.put(fileObj)); }
 function dbGetFile(id)       { return dbTx('files','readonly',  s => s.get(id)); }
 function dbDeleteFile(id)    { return dbTx('files','readwrite', s => s.delete(id)); }
+
+// ── Escritura masiva: UNA sola transacción para N archivos ────────────
+// Hasta 50-100x más rápido que llamar dbPutFile() uno por uno
+function dbPutFileBatch(fileObjs) {
+  if (!fileObjs || !fileObjs.length) return Promise.resolve();
+  return openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('files', 'readwrite');
+    const store = tx.objectStore('files');
+    fileObjs.forEach(f => store.put(f));
+    tx.oncomplete = () => res();
+    tx.onerror    = e  => rej(e.target.error);
+    tx.onabort    = e  => rej(e.target.error);
+  }));
+}
 function dbGetAllFiles(email) {
   return openDB().then(db => new Promise((res, rej) => {
     const tx    = db.transaction('files', 'readonly');
@@ -1807,71 +1821,76 @@ const _fileRefs = {}; // id -> File object (solo en sesión, no persiste)
 const LARGE_FILE_THRESHOLD = 500 * 1024 * 1024; // 500MB
 
 function uploadFiles(files, forceFolderId) {
-  if(!files.length)return;
+  if(!files.length) return;
   const activeFolderId = forceFolderId || (currentFilter.startsWith('folder_') ? currentFilter.slice(7) : null);
-
-  // ── Subida en paralelo por lotes de 6 ─────────────────────────────
-  // Sin delay artificial — el hilo es liberado con await entre lotes
-  const BATCH = 6;
   const list = Array.from(files);
-  let saved = 0, failed = 0, processed = 0;
-  showProgress(list[0].name);
-
-  async function readFileAsDataURL(file) {
-    if (file.size > LARGE_FILE_THRESHOLD) return null; // handled as ref
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onprogress = ev => { if(ev.lengthComputable) updateProgress((ev.loaded/ev.total)*100, file.name); };
-      r.onload = e => resolve(e.target.result);
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-  }
-
-  async function processBatch(batch) {
-    const entries = await Promise.allSettled(
-      batch.map(async (file) => {
-        const isHuge = file.size > LARGE_FILE_THRESHOLD;
-        let entry;
-        if (isHuge) {
-          const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-          entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: null, isRef: true };
-          if (activeFolderId) entry.folderId = activeFolderId;
-          _fileRefs[id] = file;
-        } else {
-          const dataUrl = await readFileAsDataURL(file);
-          entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2), email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: dataUrl };
-          if (activeFolderId) entry.folderId = activeFolderId;
-        }
-        return entry;
-      })
-    );
-
-    await Promise.allSettled(
-      entries.map(r => {
-        if (r.status === 'fulfilled' && r.value) {
-          return saveFile(r.value).then(ok => {
-            if (ok) { allFiles.unshift(r.value); saved++; }
-            else { failed++; }
-          });
-        } else { failed++; return Promise.resolve(); }
-      })
-    );
-
-    processed += batch.length;
-    showProgress('(' + processed + '/' + list.length + ') ' + batch[batch.length-1].name);
-    // Yield al hilo principal entre lotes
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
+  showProgress('(0/' + list.length + ') Preparando...');
 
   (async () => {
-    for (let i = 0; i < list.length; i += BATCH) {
-      await processBatch(list.slice(i, i + BATCH));
+    // ── FASE 1: Leer TODOS los archivos en paralelo (lotes de 10) ──
+    const READ_BATCH = 10;
+    const entries = [];
+    let readDone = 0;
+
+    for (let i = 0; i < list.length; i += READ_BATCH) {
+      const batch = list.slice(i, i + READ_BATCH);
+      const results = await Promise.allSettled(
+        batch.map(file => new Promise(resolve => {
+          const isHuge = file.size > LARGE_FILE_THRESHOLD;
+          if (isHuge) {
+            const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+            const entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: null, isRef: true };
+            if (activeFolderId) entry.folderId = activeFolderId;
+            _fileRefs[id] = file;
+            resolve(entry);
+          } else {
+            const r = new FileReader();
+            r.onload = e => {
+              const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2), email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: e.target.result };
+              if (activeFolderId) entry.folderId = activeFolderId;
+              resolve(entry);
+            };
+            r.onerror = () => resolve(null);
+            r.readAsDataURL(file);
+          }
+        }))
+      );
+      for (const r of results) if (r.status === 'fulfilled' && r.value) entries.push(r.value);
+      readDone += batch.length;
+      showProgress('(' + readDone + '/' + list.length + ') Leyendo...');
+      await new Promise(r => setTimeout(r, 0));
     }
+
+    // ── FASE 2: Guardar TODO en UNA transacción IndexedDB ──
+    showProgress('Guardando ' + entries.length + ' archivo(s)...');
+    let saved = 0, failed = 0;
+
+    if (window._useLocalStorageFallback) {
+      try {
+        const key = 'elite_files_' + currentUser.email;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        localStorage.setItem(key, JSON.stringify([...entries, ...existing]));
+        saved = entries.length;
+      } catch(e) { failed = entries.length; }
+    } else {
+      try {
+        await dbPutFileBatch(entries);
+        saved = entries.length;
+      } catch(e) {
+        // Fallback
+        for (const entry of entries) {
+          const ok = await saveFile(entry).catch(() => false);
+          if (ok) saved++; else failed++;
+        }
+      }
+    }
+
+    // ── FASE 3: Render único ──
+    for (const entry of entries) allFiles.unshift(entry);
     hideProgress();
     document.getElementById('file-input').value = '';
-    // Render único al terminar
     renderFiles(); updateStats(); updateStorage();
+
     if (saved > 0) {
       const folderName = activeFolderId ? (getFolders().find(f=>f.id===activeFolderId)||{}).name : null;
       showToast('✅ ' + saved + ' archivo(s) guardado(s)' + (folderName ? ' en "' + folderName + '"' : ''), 'success');
@@ -2326,28 +2345,29 @@ async function decompressFile(id) {
       return;
     }
 
-    _updateUnzipProgress(0, files.length, '');
-    let imported = 0;
-    let failed = 0;
-    let processed = 0;
+    _updateUnzipProgress(0, files.length, 'Extrayendo...');
 
-    // ── Procesamiento en paralelo por lotes ─────────────────────────
-    // Lote de 8: extrae 8 archivos simultáneamente (sin bloquear el hilo)
-    const BATCH_SIZE = 8;
+    // ── FASE 1: Extraer TODOS los archivos en paralelo (lotes de 20) ──
+    // zip.js es thread-safe por entrada, podemos lanzar muchas a la vez
+    const EXTRACT_BATCH = 20;
+    const extracted = [];
+    let done = 0;
 
-    async function processBatch(batch) {
+    for (let i = 0; i < files.length; i += EXTRACT_BATCH) {
+      const batch = files.slice(i, i + EXTRACT_BATCH);
       const results = await Promise.allSettled(
-        batch.map(async (entry) => {
+        batch.map(async entry => {
           const shortName = entry.filename.split('/').pop();
           if (!shortName) return null;
           const blob = await entry.getData(new zip.BlobWriter());
+          // FileReader como Promise — más rápido que fetch(dataURL)
           const dataUrl = await new Promise(res => {
             const r = new FileReader();
             r.onload = e => res(e.target.result);
             r.readAsDataURL(blob);
           });
           return {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2) + i,
             email: currentUser.email,
             name: sanitize(shortName),
             type: getFileType(shortName),
@@ -2357,39 +2377,56 @@ async function decompressFile(id) {
           };
         })
       );
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) extracted.push(r.value);
+      }
+      done += batch.length;
+      _updateUnzipProgress(Math.round(done * 0.7), files.length, `Extrayendo ${done}/${files.length}...`);
+      // Yield al navegador para no congelar la UI
+      await new Promise(r => setTimeout(r, 0));
+    }
 
-      // Guardar todos en paralelo
-      const saveResults = await Promise.allSettled(
-        results.map(r => r.status === 'fulfilled' && r.value ? saveFile(r.value).then(ok => ({ ok, entry: r.value })) : Promise.resolve({ ok: false, entry: null }))
-      );
+    // ── FASE 2: Guardar TODO en UNA SOLA transacción IndexedDB ────────
+    // Esto es 50-100x más rápido que una transacción por archivo
+    _updateUnzipProgress(Math.round(files.length * 0.8), files.length, 'Guardando en base de datos...');
 
-      for (const sr of saveResults) {
-        if (sr.status === 'fulfilled' && sr.value.ok && sr.value.entry) {
-          allFiles.unshift(sr.value.entry);
-          imported++;
-        } else {
-          failed++;
+    let imported = 0, failed = 0;
+
+    if (window._useLocalStorageFallback) {
+      // localStorage: guardar de golpe
+      try {
+        const key = 'elite_files_' + currentUser.email;
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        const toSave = extracted.map(e => ({ ...e, email: currentUser.email }));
+        localStorage.setItem(key, JSON.stringify([...toSave, ...existing]));
+        imported = toSave.length;
+      } catch (e) { failed = extracted.length; }
+    } else {
+      // IndexedDB: UNA transacción para todos
+      try {
+        const toSave = extracted.map(e => ({ ...e, email: currentUser.email }));
+        await dbPutFileBatch(toSave);
+        imported = toSave.length;
+      } catch (e) {
+        console.error('Batch write failed, fallback one-by-one:', e);
+        // Fallback si algo falla
+        for (const entry of extracted) {
+          const ok = await saveFile(entry).catch(() => false);
+          if (ok) imported++; else failed++;
         }
       }
-
-      processed += batch.length;
-      const lastEntry = batch[batch.length - 1];
-      const lastName = lastEntry ? lastEntry.filename.split('/').pop() : '';
-      _updateUnzipProgress(processed, files.length, lastName);
-
-      // Render UI solo al final de cada lote para no bloquear el hilo
-      await new Promise(resolve => setTimeout(resolve, 0));
     }
 
-    for (let i = 0; i < files.length; i += BATCH_SIZE) {
-      await processBatch(files.slice(i, i + BATCH_SIZE));
-    }
+    // ── FASE 3: Actualizar memoria y render — UNA VEZ ─────────────────
+    _updateUnzipProgress(files.length, files.length, 'Actualizando...');
+    for (const entry of extracted) allFiles.unshift(entry);
 
-    // Render único al terminar todo
+    // Un solo render al final
     renderFiles(); updateStats(); updateStorage();
+
     _hideUnzipProgress();
     if (imported > 0) showToast('✅ ' + imported + ' archivo(s) descomprimidos', 'success');
-    if (failed > 0) showToast('⚠️ ' + failed + ' archivo(s) fallaron', 'error');
+    if (failed > 0)   showToast('⚠️ ' + failed + ' archivo(s) fallaron', 'error');
 
   } catch (e) {
     _hideUnzipProgress();
