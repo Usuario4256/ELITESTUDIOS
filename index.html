@@ -2355,6 +2355,8 @@ async function decompressFile(id) {
 
   _showUnzipProgress(f.name, f.size);
 
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
   let zipReader;
   try {
     zipReader = await _getZipReader(f);
@@ -2369,27 +2371,35 @@ async function decompressFile(id) {
 
     _updateUnzipProgress(0, files.length, 'Extrayendo...');
 
-    // Detectar móvil para usar lotes más pequeños y guardar progresivamente
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    const EXTRACT_BATCH = isMobile ? 4 : 20;
+    // En móvil procesamos de 1 en 1 para no acumular memoria.
+    // En escritorio usamos lotes de 10 para mayor velocidad.
+    const EXTRACT_BATCH = isMobile ? 1 : 10;
 
     let imported = 0, failed = 0, done = 0;
-    const newEntries = []; // Solo para actualizar UI al final
 
     for (let i = 0; i < files.length; i += EXTRACT_BATCH) {
       const batch = files.slice(i, i + EXTRACT_BATCH);
-      const results = await Promise.allSettled(
-        batch.map(async (entry, bIdx) => {
+      const batchExtracted = [];
+
+      for (let j = 0; j < batch.length; j++) {
+        const entry = batch[j];
+        try {
           const shortName = entry.filename.split('/').pop();
-          if (!shortName) return null;
+          if (!shortName) continue;
+
+          // Obtener blob del archivo comprimido
           const blob = await entry.getData(new zip.BlobWriter());
-          const dataUrl = await new Promise(res => {
+
+          // Convertir blob a dataURL y liberar blob inmediatamente
+          const dataUrl = await new Promise((res, rej) => {
             const r = new FileReader();
             r.onload = e => res(e.target.result);
+            r.onerror = () => rej(new Error('FileReader error'));
             r.readAsDataURL(blob);
           });
-          return {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2) + (i + bIdx),
+
+          const fileEntry = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2) + (i + j),
             email: currentUser.email,
             name: sanitize(shortName),
             type: getFileType(shortName),
@@ -2397,49 +2407,61 @@ async function decompressFile(id) {
             date: Date.now(),
             data: dataUrl
           };
-        })
-      );
 
-      const batchExtracted = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+          batchExtracted.push(fileEntry);
+        } catch (entryErr) {
+          console.warn('Error extrayendo entrada:', entryErr);
+          failed++;
+        }
+      }
+
       done += batch.length;
-      _updateUnzipProgress(Math.round(done / files.length * 85), files.length, `Guardando ${done}/${files.length}...`);
+      _updateUnzipProgress(Math.round(done / files.length * 90), files.length, `Guardando ${done}/${files.length}...`);
 
-      // Guardar este lote inmediatamente para liberar memoria
+      // Guardar este lote y liberar memoria de batchExtracted enseguida
       if (batchExtracted.length > 0) {
         if (window._useLocalStorageFallback) {
           try {
             const key = 'elite_files_' + currentUser.email;
             const existing = JSON.parse(localStorage.getItem(key) || '[]');
             localStorage.setItem(key, JSON.stringify([...batchExtracted, ...existing]));
+            // Añadir a allFiles sin acumular referencias extra
+            for (const e of batchExtracted) allFiles.unshift(e);
             imported += batchExtracted.length;
-            for (const e of batchExtracted) newEntries.push(e);
-          } catch (e) { failed += batchExtracted.length; }
+          } catch (saveErr) { failed += batchExtracted.length; }
         } else {
           try {
             await dbPutFileBatch(batchExtracted.map(e => ({ ...e, email: currentUser.email })));
+            for (const e of batchExtracted) allFiles.unshift(e);
             imported += batchExtracted.length;
-            for (const e of batchExtracted) newEntries.push(e);
-          } catch (e) {
+          } catch (dbErr) {
             for (const entry of batchExtracted) {
               const ok = await saveFile(entry).catch(() => false);
-              if (ok) { imported++; newEntries.push(entry); } else failed++;
+              if (ok) { allFiles.unshift(entry); imported++; } else failed++;
             }
           }
         }
+        // Vaciar el array para ayudar al GC a liberar la memoria de los dataURLs
+        batchExtracted.length = 0;
       }
 
-      // Yield para que el navegador no se congele (especialmente importante en móvil)
-      await new Promise(r => setTimeout(r, isMobile ? 30 : 0));
+      // Ceder el hilo al navegador entre cada lote.
+      // En móvil damos más tiempo (60ms) para que el GC pueda actuar.
+      await new Promise(r => setTimeout(r, isMobile ? 60 : 5));
+
+      // Actualizar la UI cada 10 archivos para que el usuario vea el progreso
+      if (done % 10 === 0 || done === files.length) {
+        renderFiles(); updateStats();
+      }
     }
 
-    // FASE FINAL: Actualizar UI una sola vez
+    // Render final
     _updateUnzipProgress(files.length, files.length, 'Listo ✓');
-    for (const entry of newEntries) allFiles.unshift(entry);
     renderFiles(); updateStats(); updateStorage();
 
     _hideUnzipProgress();
     if (imported > 0) showToast('✅ ' + imported + ' archivo(s) descomprimidos', 'success');
-    if (failed > 0)   showToast('⚠️ ' + failed + ' fallaron', 'error');
+    if (failed > 0)   showToast('⚠️ ' + failed + ' fallaron al extraer', 'error');
 
   } catch (e) {
     _hideUnzipProgress();
