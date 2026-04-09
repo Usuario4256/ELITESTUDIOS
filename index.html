@@ -76,6 +76,14 @@
     from { opacity: 0; transform: translateY(40px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes slideUpIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.95); }
+  }
   .auth-card {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -749,6 +757,7 @@
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/@zip.js/zip.js@2.7.52/dist/zip.min.js"></script>
   <!-- ══════════════════════════════════════════════════════════════
        CORREOS VÍA FORMSPREE — No requiere cuenta ni configuración adicional.
        Los correos de bienvenida y restablecimiento de contraseña se envían
@@ -2282,88 +2291,167 @@ function handleIsoUpload(input){
   input.value='';
 }
 
-// ── Descomprimir ZIP — guardar dentro de la app ──────────────
-async function _getZipBuf(f){
-  if(f.isRef){
-    const fileObj=_fileRefs[f.id];
-    if(!fileObj) throw new Error('Referencia perdida. Recarga y sube el archivo de nuevo.');
-    return await fileObj.arrayBuffer();
+// ── Motor de descompresión ZIP en streaming (zip.js) ─────────────
+// Soporta ZIPs de cualquier tamaño sin cargar todo en RAM
+
+async function _getZipReader(f) {
+  let reader;
+  if (f.isRef || f.data === null || f.data === undefined) {
+    const fileObj = _fileRefs[f.id];
+    if (!fileObj) throw new Error('Referencia perdida. Recarga la página y sube el archivo de nuevo.');
+    reader = new zip.BlobReader(fileObj);
+  } else {
+    // Convertir dataURL a Blob para streaming
+    const res = await fetch(f.data);
+    const blob = await res.blob();
+    reader = new zip.BlobReader(blob);
   }
-  if(!f.data) throw new Error('El archivo no tiene datos.');
-  const b=atob(f.data.split(',')[1]);
-  const buf=new Uint8Array(b.length);
-  for(let i=0;i<b.length;i++) buf[i]=b.charCodeAt(i);
-  return buf;
+  return new zip.ZipReader(reader);
 }
 
-async function decompressFile(id){
-  const f=allFiles.find(x=>x.id===id);
-  if(!f)return;
-  if(typeof JSZip==='undefined'){showToast('❌ JSZip no disponible','error');return;}
-  showToast('📂 Descomprimiendo ZIP...','success');
+async function decompressFile(id) {
+  const f = allFiles.find(x => x.id === id);
+  if (!f) return;
+
+  // Mostrar panel de progreso espectacular
+  _showUnzipProgress(f.name, f.size);
+
+  let zipReader;
   try {
-    const buf=await _getZipBuf(f);
-    const zip=await JSZip.loadAsync(buf);
-    const fileNames=Object.keys(zip.files).filter(n=>!zip.files[n].dir);
-    if(!fileNames.length){showToast('⚠️ El ZIP está vacío','error');return;}
-    let imported=0;
-    for(const name of fileNames){
-      const ok=await importSingleFromZip(id,name,zip);
-      if(ok) imported++;
+    // zip.js usa streaming — no carga el ZIP completo en RAM
+    zipReader = await _getZipReader(f);
+    const entries = await zipReader.getEntries();
+    const files = entries.filter(e => !e.directory);
+
+    if (!files.length) {
+      _hideUnzipProgress();
+      showToast('⚠️ El ZIP está vacío', 'error');
+      return;
     }
-    showToast('✅ '+imported+' archivos descomprimidos e importados','success');
-  } catch(e){showToast('❌ Error al descomprimir: '+e.message,'error');console.error(e);}
+
+    _updateUnzipProgress(0, files.length, '');
+    let imported = 0;
+    let failed = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const entry = files[i];
+      const shortName = entry.filename.split('/').pop();
+      if (!shortName) continue;
+
+      _updateUnzipProgress(i + 1, files.length, shortName);
+      try {
+        // Extraer en streaming a Blob — sin pasar por base64 enorme en RAM
+        const blob = await entry.getData(new zip.BlobWriter());
+        const dataUrl = await new Promise(res => {
+          const reader = new FileReader();
+          reader.onload = e => res(e.target.result);
+          reader.readAsDataURL(blob);
+        });
+        const entryObj = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+          email: currentUser.email,
+          name: sanitize(shortName),
+          type: getFileType(shortName),
+          size: blob.size,
+          date: Date.now(),
+          data: dataUrl
+        };
+        const ok = await saveFile(entryObj);
+        if (ok) { allFiles.unshift(entryObj); renderFiles(); updateStats(); updateStorage(); imported++; }
+        else { failed++; }
+      } catch (err) {
+        console.warn('No se pudo extraer:', entry.filename, err);
+        failed++;
+      }
+    }
+
+    _hideUnzipProgress();
+    if (imported > 0) showToast('✅ ' + imported + ' archivo(s) descomprimidos', 'success');
+    if (failed > 0) showToast('⚠️ ' + failed + ' archivo(s) fallaron', 'error');
+
+  } catch (e) {
+    _hideUnzipProgress();
+    showToast('❌ Error al descomprimir: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    if (zipReader) try { await zipReader.close(); } catch (_) {}
+  }
 }
 
-async function importSingleFromZip(zipId, fileName, zip){
-  const f=allFiles.find(x=>x.id===zipId);
-  if(!f)return false;
+// ── UI de progreso de descompresión ────────────────────────────────
+function _showUnzipProgress(zipName, zipSize) {
+  let el = document.getElementById('unzip-progress-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'unzip-progress-overlay';
+    el.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:linear-gradient(135deg,#1a1d2e,#0f1120);
+      border:1px solid rgba(79,140,255,0.3);border-radius:18px;
+      padding:20px 28px;min-width:340px;max-width:90vw;
+      box-shadow:0 8px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(79,140,255,0.1);
+      z-index:99999;font-family:'Syne',sans-serif;
+      animation:slideUpIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    `;
+    document.body.appendChild(el);
+  }
+  const mb = zipSize ? ` · ${Math.round(zipSize/1024/1024)} MB` : '';
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="font-size:26px;animation:spin 1.5s linear infinite;">⚙️</div>
+      <div>
+        <div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:0.5px;">DESCOMPRIMIENDO</div>
+        <div style="font-size:11px;color:#6b7ab8;margin-top:2px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${zipName}">${zipName}${mb}</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.06);border-radius:99px;height:6px;overflow:hidden;margin-bottom:10px;">
+      <div id="unzip-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#22d3a5,#4f8cff);border-radius:99px;transition:width 0.3s ease;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div id="unzip-file-label" style="font-size:11px;color:#6b7ab8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;">Iniciando...</div>
+      <div id="unzip-count-label" style="font-size:11px;color:#22d3a5;font-weight:700;flex-shrink:0;margin-left:8px;">0 / ?</div>
+    </div>
+  `;
+}
+
+function _updateUnzipProgress(current, total, fileName) {
+  const bar = document.getElementById('unzip-bar');
+  const fileLabel = document.getElementById('unzip-file-label');
+  const countLabel = document.getElementById('unzip-count-label');
+  if (bar) bar.style.width = Math.round((current / total) * 100) + '%';
+  if (fileLabel) fileLabel.textContent = fileName || '...';
+  if (countLabel) countLabel.textContent = current + ' / ' + total;
+}
+
+function _hideUnzipProgress() {
+  const el = document.getElementById('unzip-progress-overlay');
+  if (el) {
+    el.style.animation = 'fadeOut 0.3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }
+}
+
+// Mantener funciones antiguas por compatibilidad
+async function importSingleFromZip(zipId, fileName, zip) {
+  if (!zip) return false;
   try {
-    if(!zip){
-      const buf=await _getZipBuf(f);
-      zip=await JSZip.loadAsync(buf);
-    }
-    const fileData=await zip.files[fileName].async('arraybuffer');
-    const shortName=fileName.split('/').pop();
-    const dataUrl=await new Promise(res=>{
-      const reader=new FileReader();
-      reader.onload=e=>res(e.target.result);
+    const fileData = await zip.files[fileName].async('arraybuffer');
+    const shortName = fileName.split('/').pop();
+    const dataUrl = await new Promise(res => {
+      const reader = new FileReader();
+      reader.onload = e => res(e.target.result);
       reader.readAsDataURL(new Blob([fileData]));
     });
-    const entry={
-      id: Date.now().toString(36)+Math.random().toString(36).slice(2),
-      email: currentUser.email,
-      name: sanitize(shortName),
-      type: getFileType(shortName),
-      size: fileData.byteLength,
-      date: Date.now(),
-      data: dataUrl
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      email: currentUser.email, name: sanitize(shortName),
+      type: getFileType(shortName), size: fileData.byteLength,
+      date: Date.now(), data: dataUrl
     };
-    const ok=await saveFile(entry);
-    if(ok){ allFiles.unshift(entry); renderFiles(); updateStats(); updateStorage(); showToast('✅ Importado: '+shortName,'success'); }
+    const ok = await saveFile(entry);
+    if (ok) { allFiles.unshift(entry); renderFiles(); updateStats(); updateStorage(); }
     return ok;
-  } catch(e){ showToast('❌ Error al importar '+fileName.split('/').pop(),'error'); return false; }
-}
-
-async function importAllFromZip(zipId){
-  const f=allFiles.find(x=>x.id===zipId);
-  if(!f)return;
-  const btn=document.getElementById('import-all-btn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Importando...';}
-  try {
-    let buf;
-    if(f.isLarge){ buf=f.data; }
-    else { const b=atob(f.data.split(',')[1]); buf=new Uint8Array(b.length); for(let i=0;i<b.length;i++)buf[i]=b.charCodeAt(i); }
-    const zip=await JSZip.loadAsync(buf);
-    const fileNames=Object.keys(zip.files).filter(n=>!zip.files[n].dir);
-    let imported=0;
-    for(const name of fileNames){
-      const ok=await importSingleFromZip(zipId,name);
-      if(ok) imported++;
-    }
-    showToast('✅ '+imported+' archivos importados a ELITE','success');
-    if(btn){btn.textContent='✅ ¡Importados!';}
-  } catch(e){ showToast('❌ Error al importar','error'); if(btn){btn.disabled=false;btn.textContent='☁️ Importar todos a ELITE';} }
+  } catch (e) { return false; }
 }
 
 // ── Ver contenido ISO ────────────────────────────────────────
