@@ -1091,7 +1091,7 @@
       </div>
 
       <!-- Folder Active Banner -->
-      <div id="folder-banner" style="display:none;background:rgba(79,140,255,0.08);border:1px solid rgba(79,140,255,0.25);border-radius:14px;padding:14px 18px;margin-bottom:16px;display:none;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div id="folder-banner" style="display:none;background:rgba(79,140,255,0.08);border:1px solid rgba(79,140,255,0.25);border-radius:14px;padding:14px 18px;margin-bottom:16px;align-items:center;gap:14px;flex-wrap:wrap;">
         <span id="folder-banner-icon" style="font-size:28px;">📁</span>
         <div style="flex:1;min-width:0;">
           <div id="folder-banner-name" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#4f8cff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
@@ -3144,36 +3144,10 @@ async function uploadAndShare() {
 
     let link = null;
 
-    // ── Intento 1: catbox.moe sin cuenta (CORS OK, permanente, hasta 200MB) ──
-    if (!link) {
-      try {
-        setProgress(25, 'Subiendo a catbox.moe (permanente)...');
-        const fd = new FormData();
-        fd.append('reqtype', 'fileupload');
-        fd.append('userhash', '');
-        fd.append('fileToUpload', blob, fileName);
-        const res = await fetchWithTimeout('https://catbox.moe/user/api.php', { method:'POST', body:fd }, 60000);
-        const text = await res.text();
-        if (text && text.startsWith('https://')) link = text.trim();
-      } catch(e) { console.warn('catbox failed:', e.message); }
-    }
-
-    // ── Intento 2: 0x0.st (permanente, hasta 512MB) ──
-    if (!link) {
-      try {
-        setProgress(50, 'Subiendo a 0x0.st (permanente)...');
-        const fd = new FormData();
-        fd.append('file', blob, fileName);
-        const res = await fetchWithTimeout('https://0x0.st', { method:'POST', body:fd }, 60000);
-        const text = await res.text();
-        if (text && text.startsWith('https://')) link = text.trim();
-      } catch(e) { console.warn('0x0.st failed:', e.message); }
-    }
-
-    // ── Intento 3: litterbox.catbox.moe (CORS OK, hasta 1GB, temporal 72h) ──
+    // ── Intento 1: litterbox.catbox.moe (CORS OK, hasta 1GB, temporal 72h) ──
     if(!link) {
       try {
-        setProgress(30, 'Subiendo a litterbox.catbox.moe...');
+        setProgress(25, 'Subiendo a litterbox.catbox.moe...');
         const fd = new FormData();
         fd.append('reqtype', 'fileupload');
         fd.append('time', '72h');
@@ -3189,7 +3163,7 @@ async function uploadAndShare() {
     // ── Intento 2: catbox.moe sin cuenta (CORS OK, permanente, hasta 200MB) ──
     if(!link) {
       try {
-        setProgress(50, 'Subiendo a catbox.moe...');
+        setProgress(45, 'Subiendo a catbox.moe...');
         const fd = new FormData();
         fd.append('reqtype', 'fileupload');
         fd.append('userhash', '');
@@ -3202,10 +3176,24 @@ async function uploadAndShare() {
       } catch(e) { console.warn('catbox failed:', e.message); }
     }
 
-    // ── Intento 3: file.io (CORS OK, un solo uso, 30 días) ──
+    // ── Intento 3: 0x0.st (permanente, hasta 512MB) ──
     if(!link) {
       try {
-        setProgress(65, 'Subiendo a file.io...');
+        setProgress(60, 'Subiendo a 0x0.st...');
+        const fd = new FormData();
+        fd.append('file', blob, f.name);
+        const res = await fetchWithTimeout('https://0x0.st', { method:'POST', body:fd }, 60000);
+        if(res.ok) {
+          const txt = await res.text();
+          if(txt.startsWith('https://')) { link = txt.trim(); }
+        }
+      } catch(e) { console.warn('0x0.st failed:', e.message); }
+    }
+
+    // ── Intento 4: file.io (CORS OK, un solo uso, 30 días) ──
+    if(!link) {
+      try {
+        setProgress(72, 'Subiendo a file.io...');
         const fd = new FormData();
         fd.append('file', blob, f.name);
         const res = await fetchWithTimeout('https://file.io/?expires=14d', { method:'POST', body:fd }, 30000);
@@ -3216,10 +3204,10 @@ async function uploadAndShare() {
       } catch(e) { console.warn('file.io failed:', e.message); }
     }
 
-    // ── Intento 4: tmpfiles.org ──
+    // ── Intento 5: tmpfiles.org ──
     if(!link) {
       try {
-        setProgress(80, 'Subiendo a tmpfiles.org...');
+        setProgress(83, 'Subiendo a tmpfiles.org...');
         const fd = new FormData();
         fd.append('file', blob, f.name);
         const res = await fetchWithTimeout('https://tmpfiles.org/api/v1/upload', { method:'POST', body:fd }, 30000);
@@ -3232,10 +3220,10 @@ async function uploadAndShare() {
       } catch(e) { console.warn('tmpfiles failed:', e.message); }
     }
 
-    // ── Intento 5: uguu.se (CORS OK, 48h) ──
+    // ── Intento 6: uguu.se (CORS OK, 48h) ──
     if(!link) {
       try {
-        setProgress(90, 'Subiendo a uguu.se...');
+        setProgress(93, 'Subiendo a uguu.se...');
         const fd = new FormData();
         fd.append('files[]', blob, f.name);
         const res = await fetchWithTimeout('https://uguu.se/upload', { method:'POST', body:fd }, 30000);
@@ -3730,7 +3718,7 @@ function handleFolderFileInput(fileList) {
     <div id="folders-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;"></div>
   </div>
 </div>
-<!-- SOLO PARCHE: agrega esto antes de 
+<!-- ══ LAZY LOAD OBSERVER ══ -->
 
 <script>
 // ── Lazy load observer para imágenes ──────────────────────────
