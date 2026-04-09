@@ -1220,7 +1220,6 @@ function dbGetFile(id)       { return dbTx('files','readonly',  s => s.get(id));
 function dbDeleteFile(id)    { return dbTx('files','readwrite', s => s.delete(id)); }
 
 // ── Escritura masiva: UNA sola transacción para N archivos ────────────
-// Hasta 50-100x más rápido que llamar dbPutFile() uno por uno
 function dbPutFileBatch(fileObjs) {
   if (!fileObjs || !fileObjs.length) return Promise.resolve();
   return openDB().then(db => new Promise((res, rej) => {
@@ -1743,31 +1742,30 @@ window.addEventListener('DOMContentLoaded',()=>{
 // ── FILES — IndexedDB local ───────────────────────────────────
 
 async function loadFiles() {
-  allFiles=[];
+  allFiles = [];
   try {
-    // ── Mostrar skeleton/loading inmediato ──
-    const grid=document.getElementById('file-grid');
-    if(grid) grid.innerHTML='<div style="text-align:center;padding:40px;color:#6b7280;"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite;display:inline-block;">⏳</div><br>Cargando archivos...</div>';
+    const grid = document.getElementById('file-grid');
+    if (grid) grid.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite;display:inline-block;">⏳</div><br>Cargando archivos...</div>';
 
-    // ── SIEMPRE cargar IndexedDB local primero (aparición inmediata) ──
-    if(window._useLocalStorageFallback){
-      const raw=localStorage.getItem('elite_files_'+currentUser.email);
-      allFiles=raw?JSON.parse(raw):[];
+    if (window._useLocalStorageFallback) {
+      const raw = localStorage.getItem('elite_files_' + currentUser.email);
+      allFiles = raw ? JSON.parse(raw) : [];
     } else {
-      const rows=await dbGetAllFiles(currentUser.email);
-      allFiles=rows.sort((a,b)=>b.date-a.date);
+      // Cargar todos de IndexedDB en una sola lectura optimizada
+      const rows = await dbGetAllFiles(currentUser.email);
+      allFiles = rows.sort((a, b) => b.date - a.date);
     }
-    // Render en siguiente frame para no bloquear UI
-    requestAnimationFrame(()=>{
+    // Render inmediato en el próximo frame
+    requestAnimationFrame(() => {
       renderFiles(); updateStats(); updateStorage();
     });
-  } catch(e){
-    console.error('loadFiles:',e);
-    try{
-      const raw=localStorage.getItem('elite_files_'+currentUser.email);
-      allFiles=raw?JSON.parse(raw):[];
-      requestAnimationFrame(()=>{renderFiles();updateStats();updateStorage();});
-    }catch{}
+  } catch (e) {
+    console.error('loadFiles:', e);
+    try {
+      const raw = localStorage.getItem('elite_files_' + currentUser.email);
+      allFiles = raw ? JSON.parse(raw) : [];
+      requestAnimationFrame(() => { renderFiles(); updateStats(); updateStorage(); });
+    } catch {}
   }
 }
 
@@ -1821,13 +1819,12 @@ const _fileRefs = {}; // id -> File object (solo en sesión, no persiste)
 const LARGE_FILE_THRESHOLD = 500 * 1024 * 1024; // 500MB
 
 function uploadFiles(files, forceFolderId) {
-  if(!files.length) return;
+  if (!files.length) return;
   const activeFolderId = forceFolderId || (currentFilter.startsWith('folder_') ? currentFilter.slice(7) : null);
   const list = Array.from(files);
   showProgress('(0/' + list.length + ') Preparando...');
 
   (async () => {
-    // ── FASE 1: Leer TODOS los archivos en paralelo (lotes de 10) ──
     const READ_BATCH = 10;
     const entries = [];
     let readDone = 0;
@@ -1836,8 +1833,7 @@ function uploadFiles(files, forceFolderId) {
       const batch = list.slice(i, i + READ_BATCH);
       const results = await Promise.allSettled(
         batch.map(file => new Promise(resolve => {
-          const isHuge = file.size > LARGE_FILE_THRESHOLD;
-          if (isHuge) {
+          if (file.size > LARGE_FILE_THRESHOLD) {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
             const entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: null, isRef: true };
             if (activeFolderId) entry.folderId = activeFolderId;
@@ -1861,7 +1857,6 @@ function uploadFiles(files, forceFolderId) {
       await new Promise(r => setTimeout(r, 0));
     }
 
-    // ── FASE 2: Guardar TODO en UNA transacción IndexedDB ──
     showProgress('Guardando ' + entries.length + ' archivo(s)...');
     let saved = 0, failed = 0;
 
@@ -1871,13 +1866,12 @@ function uploadFiles(files, forceFolderId) {
         const existing = JSON.parse(localStorage.getItem(key) || '[]');
         localStorage.setItem(key, JSON.stringify([...entries, ...existing]));
         saved = entries.length;
-      } catch(e) { failed = entries.length; }
+      } catch (e) { failed = entries.length; }
     } else {
       try {
         await dbPutFileBatch(entries);
         saved = entries.length;
-      } catch(e) {
-        // Fallback
+      } catch (e) {
         for (const entry of entries) {
           const ok = await saveFile(entry).catch(() => false);
           if (ok) saved++; else failed++;
@@ -1885,14 +1879,13 @@ function uploadFiles(files, forceFolderId) {
       }
     }
 
-    // ── FASE 3: Render único ──
     for (const entry of entries) allFiles.unshift(entry);
     hideProgress();
     document.getElementById('file-input').value = '';
     renderFiles(); updateStats(); updateStorage();
 
     if (saved > 0) {
-      const folderName = activeFolderId ? (getFolders().find(f=>f.id===activeFolderId)||{}).name : null;
+      const folderName = activeFolderId ? (getFolders().find(f => f.id === activeFolderId) || {}).name : null;
       showToast('✅ ' + saved + ' archivo(s) guardado(s)' + (folderName ? ' en "' + folderName + '"' : ''), 'success');
       if (activeFolderId) {
         const count = allFiles.filter(f => f.folderId === activeFolderId).length;
@@ -2035,46 +2028,75 @@ function filterType(type,el){
   renderFiles();
 }
 
-function renderFiles(){
-  const grid=document.getElementById('file-grid');
-  const empty=document.getElementById('empty-state');
-  let files=[...allFiles];
-  if(currentFilter.startsWith('folder_')) {
+let _renderPage = 0;
+const _PAGE_SIZE = 80;
+
+function renderFiles(append) {
+  const grid = document.getElementById('file-grid');
+  const empty = document.getElementById('empty-state');
+  let files = [...allFiles];
+
+  if (currentFilter.startsWith('folder_')) {
     const fid = currentFilter.slice(7);
     files = files.filter(f => f.folderId === fid);
-  } else if(currentFilter !== 'all') {
+  } else if (currentFilter !== 'all') {
     files = files.filter(f => f.type === currentFilter);
   }
-  if(searchQuery) {
-    if(_searchFilter && _searchFilter !== 'all') files = files.filter(f => f.type === _searchFilter);
+  if (searchQuery) {
+    if (_searchFilter && _searchFilter !== 'all') files = files.filter(f => f.type === _searchFilter);
     files = files.filter(f => f.name.toLowerCase().includes(searchQuery));
   }
   const sm = _sortMode || 'date';
-  if(sm === 'size') files.sort((a,b) => b.size - a.size);
-  else if(sm === 'name') files.sort((a,b) => a.name.localeCompare(b.name));
-  else files.sort((a,b) => b.date - a.date);
-  grid.innerHTML='';
-  if(!files.length){empty.style.display='block';return;}
-  empty.style.display='none';
-  const frag=document.createDocumentFragment();
-  files.forEach((f,i)=>{
-    const card=document.createElement('div');
-    card.className='file-card';
-    card.style.animationDelay=(i*0.04)+'s';
+  if (sm === 'size') files.sort((a, b) => b.size - a.size);
+  else if (sm === 'name') files.sort((a, b) => a.name.localeCompare(b.name));
+  else files.sort((a, b) => b.date - a.date);
+
+  if (!append) {
+    _renderPage = 0;
+    grid.innerHTML = '';
+    grid._allFilteredFiles = files;
+  }
+
+  const allF = grid._allFilteredFiles || files;
+  if (!allF.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  const start = _renderPage * _PAGE_SIZE;
+  const slice = allF.slice(start, start + _PAGE_SIZE);
+  if (!slice.length) return;
+
+  const oldBtn = document.getElementById('load-more-btn');
+  if (oldBtn) oldBtn.remove();
+
+  const frag = document.createDocumentFragment();
+  slice.forEach((f, i) => {
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.style.animationDelay = (i < 20 ? i * 0.03 : 0) + 's';
     const imgSrc = f.data || f.url || '';
-    const iconContent=f.type==='image' && imgSrc
-      ?`<img src="${imgSrc}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;" loading="lazy" alt="${sanitize(f.name)}">`
-      :`<span class="fc-icon">${getFileIcon(f.type,f.name)}</span>`;
-    if(viewMode==='list'){
-      card.innerHTML=`<span class="fc-icon">${f.encrypted?'🔐':''}${getFileIcon(f.type,f.name)}</span><div class="fc-info"><div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div></div><div class="fc-actions"><button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button><button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button><button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button></div>`;
+    const iconContent = f.type === 'image' && imgSrc
+      ? `<img src="${imgSrc}" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;" loading="lazy" alt="${sanitize(f.name)}">`
+      : `<span class="fc-icon">${getFileIcon(f.type, f.name)}</span>`;
+    if (viewMode === 'list') {
+      card.innerHTML = `<span class="fc-icon">${f.encrypted ? '🔐' : ''}${getFileIcon(f.type, f.name)}</span><div class="fc-info"><div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div></div><div class="fc-actions"><button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button><button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button><button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button></div>`;
     } else {
       const encBadge = f.encrypted ? '<span class="fc-encrypted-badge">🔐</span>' : '';
-      card.innerHTML=`${iconContent}${encBadge}<div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div><div class="fc-actions"><button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button><button class="fc-share-btn" onclick="event.stopPropagation();openAssignFolderModal('${f.id}')" title="Mover a carpeta">📁</button><button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button><button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button></div>`;
+      card.innerHTML = `${iconContent}${encBadge}<div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div><div class="fc-actions"><button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button><button class="fc-share-btn" onclick="event.stopPropagation();openAssignFolderModal('${f.id}')" title="Mover a carpeta">📁</button><button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button><button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button></div>`;
     }
-    card.addEventListener('click',()=>openViewer(f.id));
+    card.addEventListener('click', () => openViewer(f.id));
     frag.appendChild(card);
   });
   grid.appendChild(frag);
+  _renderPage++;
+
+  const remaining = allF.length - _renderPage * _PAGE_SIZE;
+  if (remaining > 0) {
+    const btn = document.createElement('div');
+    btn.id = 'load-more-btn';
+    btn.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px 0;';
+    btn.innerHTML = `<button onclick="renderFiles(true)" style="padding:12px 32px;background:linear-gradient(135deg,#4f8cff,#22d3a5);border:none;border-radius:12px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cargar ${Math.min(remaining, _PAGE_SIZE)} más · ${remaining} restantes</button>`;
+    grid.appendChild(btn);
+  }
 }
 
 function updateStats(){
@@ -2347,8 +2369,7 @@ async function decompressFile(id) {
 
     _updateUnzipProgress(0, files.length, 'Extrayendo...');
 
-    // ── FASE 1: Extraer TODOS los archivos en paralelo (lotes de 20) ──
-    // zip.js es thread-safe por entrada, podemos lanzar muchas a la vez
+    // FASE 1: Extraer 20 en paralelo por lote
     const EXTRACT_BATCH = 20;
     const extracted = [];
     let done = 0;
@@ -2360,7 +2381,6 @@ async function decompressFile(id) {
           const shortName = entry.filename.split('/').pop();
           if (!shortName) return null;
           const blob = await entry.getData(new zip.BlobWriter());
-          // FileReader como Promise — más rápido que fetch(dataURL)
           const dataUrl = await new Promise(res => {
             const r = new FileReader();
             r.onload = e => res(e.target.result);
@@ -2377,39 +2397,28 @@ async function decompressFile(id) {
           };
         })
       );
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) extracted.push(r.value);
-      }
+      for (const r of results) if (r.status === 'fulfilled' && r.value) extracted.push(r.value);
       done += batch.length;
       _updateUnzipProgress(Math.round(done * 0.7), files.length, `Extrayendo ${done}/${files.length}...`);
-      // Yield al navegador para no congelar la UI
-      await new Promise(r => setTimeout(r, 0));
+      await new Promise(r => setTimeout(r, 0)); // yield al hilo
     }
 
-    // ── FASE 2: Guardar TODO en UNA SOLA transacción IndexedDB ────────
-    // Esto es 50-100x más rápido que una transacción por archivo
-    _updateUnzipProgress(Math.round(files.length * 0.8), files.length, 'Guardando en base de datos...');
-
+    // FASE 2: UNA sola transacción IndexedDB para todo
+    _updateUnzipProgress(Math.round(files.length * 0.85), files.length, 'Guardando...');
     let imported = 0, failed = 0;
 
     if (window._useLocalStorageFallback) {
-      // localStorage: guardar de golpe
       try {
         const key = 'elite_files_' + currentUser.email;
         const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        const toSave = extracted.map(e => ({ ...e, email: currentUser.email }));
-        localStorage.setItem(key, JSON.stringify([...toSave, ...existing]));
-        imported = toSave.length;
+        localStorage.setItem(key, JSON.stringify([...extracted, ...existing]));
+        imported = extracted.length;
       } catch (e) { failed = extracted.length; }
     } else {
-      // IndexedDB: UNA transacción para todos
       try {
-        const toSave = extracted.map(e => ({ ...e, email: currentUser.email }));
-        await dbPutFileBatch(toSave);
-        imported = toSave.length;
+        await dbPutFileBatch(extracted.map(e => ({ ...e, email: currentUser.email })));
+        imported = extracted.length;
       } catch (e) {
-        console.error('Batch write failed, fallback one-by-one:', e);
-        // Fallback si algo falla
         for (const entry of extracted) {
           const ok = await saveFile(entry).catch(() => false);
           if (ok) imported++; else failed++;
@@ -2417,16 +2426,14 @@ async function decompressFile(id) {
       }
     }
 
-    // ── FASE 3: Actualizar memoria y render — UNA VEZ ─────────────────
-    _updateUnzipProgress(files.length, files.length, 'Actualizando...');
+    // FASE 3: Actualizar UI UNA sola vez
+    _updateUnzipProgress(files.length, files.length, 'Listo ✓');
     for (const entry of extracted) allFiles.unshift(entry);
-
-    // Un solo render al final
     renderFiles(); updateStats(); updateStorage();
 
     _hideUnzipProgress();
     if (imported > 0) showToast('✅ ' + imported + ' archivo(s) descomprimidos', 'success');
-    if (failed > 0)   showToast('⚠️ ' + failed + ' archivo(s) fallaron', 'error');
+    if (failed > 0)   showToast('⚠️ ' + failed + ' fallaron', 'error');
 
   } catch (e) {
     _hideUnzipProgress();
