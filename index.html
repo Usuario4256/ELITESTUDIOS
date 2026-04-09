@@ -2369,15 +2369,17 @@ async function decompressFile(id) {
 
     _updateUnzipProgress(0, files.length, 'Extrayendo...');
 
-    // FASE 1: Extraer 20 en paralelo por lote
-    const EXTRACT_BATCH = 20;
-    const extracted = [];
-    let done = 0;
+    // Detectar móvil para usar lotes más pequeños y guardar progresivamente
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    const EXTRACT_BATCH = isMobile ? 4 : 20;
+
+    let imported = 0, failed = 0, done = 0;
+    const newEntries = []; // Solo para actualizar UI al final
 
     for (let i = 0; i < files.length; i += EXTRACT_BATCH) {
       const batch = files.slice(i, i + EXTRACT_BATCH);
       const results = await Promise.allSettled(
-        batch.map(async entry => {
+        batch.map(async (entry, bIdx) => {
           const shortName = entry.filename.split('/').pop();
           if (!shortName) return null;
           const blob = await entry.getData(new zip.BlobWriter());
@@ -2387,7 +2389,7 @@ async function decompressFile(id) {
             r.readAsDataURL(blob);
           });
           return {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2) + i,
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2) + (i + bIdx),
             email: currentUser.email,
             name: sanitize(shortName),
             type: getFileType(shortName),
@@ -2397,38 +2399,42 @@ async function decompressFile(id) {
           };
         })
       );
-      for (const r of results) if (r.status === 'fulfilled' && r.value) extracted.push(r.value);
+
+      const batchExtracted = results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
       done += batch.length;
-      _updateUnzipProgress(Math.round(done * 0.7), files.length, `Extrayendo ${done}/${files.length}...`);
-      await new Promise(r => setTimeout(r, 0)); // yield al hilo
-    }
+      _updateUnzipProgress(Math.round(done / files.length * 85), files.length, `Guardando ${done}/${files.length}...`);
 
-    // FASE 2: UNA sola transacción IndexedDB para todo
-    _updateUnzipProgress(Math.round(files.length * 0.85), files.length, 'Guardando...');
-    let imported = 0, failed = 0;
-
-    if (window._useLocalStorageFallback) {
-      try {
-        const key = 'elite_files_' + currentUser.email;
-        const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        localStorage.setItem(key, JSON.stringify([...extracted, ...existing]));
-        imported = extracted.length;
-      } catch (e) { failed = extracted.length; }
-    } else {
-      try {
-        await dbPutFileBatch(extracted.map(e => ({ ...e, email: currentUser.email })));
-        imported = extracted.length;
-      } catch (e) {
-        for (const entry of extracted) {
-          const ok = await saveFile(entry).catch(() => false);
-          if (ok) imported++; else failed++;
+      // Guardar este lote inmediatamente para liberar memoria
+      if (batchExtracted.length > 0) {
+        if (window._useLocalStorageFallback) {
+          try {
+            const key = 'elite_files_' + currentUser.email;
+            const existing = JSON.parse(localStorage.getItem(key) || '[]');
+            localStorage.setItem(key, JSON.stringify([...batchExtracted, ...existing]));
+            imported += batchExtracted.length;
+            for (const e of batchExtracted) newEntries.push(e);
+          } catch (e) { failed += batchExtracted.length; }
+        } else {
+          try {
+            await dbPutFileBatch(batchExtracted.map(e => ({ ...e, email: currentUser.email })));
+            imported += batchExtracted.length;
+            for (const e of batchExtracted) newEntries.push(e);
+          } catch (e) {
+            for (const entry of batchExtracted) {
+              const ok = await saveFile(entry).catch(() => false);
+              if (ok) { imported++; newEntries.push(entry); } else failed++;
+            }
+          }
         }
       }
+
+      // Yield para que el navegador no se congele (especialmente importante en móvil)
+      await new Promise(r => setTimeout(r, isMobile ? 30 : 0));
     }
 
-    // FASE 3: Actualizar UI UNA sola vez
+    // FASE FINAL: Actualizar UI una sola vez
     _updateUnzipProgress(files.length, files.length, 'Listo ✓');
-    for (const entry of extracted) allFiles.unshift(entry);
+    for (const entry of newEntries) allFiles.unshift(entry);
     renderFiles(); updateStats(); updateStorage();
 
     _hideUnzipProgress();
