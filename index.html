@@ -1233,11 +1233,52 @@ function dbPutFileBatch(fileObjs) {
 }
 function dbGetAllFiles(email) {
   return openDB().then(db => new Promise((res, rej) => {
-    const tx    = db.transaction('files', 'readonly');
-    const store = tx.objectStore('files');
-    const req   = store.getAll();
-    req.onsuccess = e => res((e.target.result || []).filter(f => f.email === email));
-    req.onerror   = e => rej(e.target.error);
+    // Timeout de seguridad: si IndexedDB no responde en 8s, resolve vacío en vez de colgar
+    const safeTimer = setTimeout(() => {
+      console.warn('dbGetAllFiles: timeout, resolviendo vacío');
+      res([]);
+    }, 8000);
+
+    try {
+      const tx    = db.transaction('files', 'readonly');
+      const store = tx.objectStore('files');
+      const req   = store.getAll();
+      req.onsuccess = e => {
+        clearTimeout(safeTimer);
+        const all = e.target.result || [];
+        // Filtramos por email y quitamos el campo data de la lista
+        // para no tener todos los base64 en memoria a la vez.
+        // El campo data se recupera individualmente al descargar/ver.
+        const rows = all
+          .filter(f => f.email === email)
+          .map(f => {
+            // Guardamos solo metadatos en allFiles; data se carga on-demand
+            const { data, ...meta } = f;
+            meta._hasData = !!data; // bandera: el registro tiene data en DB
+            return meta;
+          });
+        res(rows);
+      };
+      req.onerror = e => { clearTimeout(safeTimer); rej(e.target.error); };
+      tx.onerror  = e => { clearTimeout(safeTimer); rej(e.target.error); };
+    } catch(e) {
+      clearTimeout(safeTimer);
+      rej(e);
+    }
+  }));
+}
+
+// Recupera el campo data de un archivo desde IndexedDB (on-demand)
+function dbGetFileData(id) {
+  return openDB().then(db => new Promise((res, rej) => {
+    const safeTimer = setTimeout(() => res(null), 6000);
+    try {
+      const tx    = db.transaction('files', 'readonly');
+      const store = tx.objectStore('files');
+      const req   = store.get(id);
+      req.onsuccess = e => { clearTimeout(safeTimer); res(e.target.result ? e.target.result.data : null); };
+      req.onerror   = e => { clearTimeout(safeTimer); rej(e.target.error); };
+    } catch(e) { clearTimeout(safeTimer); rej(e); }
   }));
 }
 function dbClearUserFiles(email) {
@@ -1747,25 +1788,40 @@ async function loadFiles() {
     const grid = document.getElementById('file-grid');
     if (grid) grid.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite;display:inline-block;">⏳</div><br>Cargando archivos...</div>';
 
+    // Timeout global: si todo falla o cuelga, mostramos vacío en 10s
+    const loadTimeout = setTimeout(() => {
+      console.warn('loadFiles: timeout global, forzando render vacío');
+      if (grid) grid.innerHTML = '';
+      requestAnimationFrame(() => { renderFiles(); updateStats(); updateStorage(); });
+    }, 10000);
+
     if (window._useLocalStorageFallback) {
-      const raw = localStorage.getItem('elite_files_' + currentUser.email);
-      allFiles = raw ? JSON.parse(raw) : [];
+      try {
+        const raw = localStorage.getItem('elite_files_' + currentUser.email);
+        allFiles = raw ? JSON.parse(raw) : [];
+      } catch(lsErr) { allFiles = []; }
     } else {
-      // Cargar todos de IndexedDB en una sola lectura optimizada
-      const rows = await dbGetAllFiles(currentUser.email);
-      allFiles = rows.sort((a, b) => b.date - a.date);
+      try {
+        const rows = await dbGetAllFiles(currentUser.email);
+        allFiles = rows.sort((a, b) => b.date - a.date);
+      } catch(dbErr) {
+        console.warn('IndexedDB falló, intentando localStorage:', dbErr);
+        try {
+          const raw = localStorage.getItem('elite_files_' + currentUser.email);
+          allFiles = raw ? JSON.parse(raw) : [];
+          window._useLocalStorageFallback = true;
+        } catch(lsErr) { allFiles = []; }
+      }
     }
-    // Render inmediato en el próximo frame
+
+    clearTimeout(loadTimeout);
     requestAnimationFrame(() => {
       renderFiles(); updateStats(); updateStorage();
     });
   } catch (e) {
-    console.error('loadFiles:', e);
-    try {
-      const raw = localStorage.getItem('elite_files_' + currentUser.email);
-      allFiles = raw ? JSON.parse(raw) : [];
-      requestAnimationFrame(() => { renderFiles(); updateStats(); updateStorage(); });
-    } catch {}
+    console.error('loadFiles error general:', e);
+    allFiles = [];
+    requestAnimationFrame(() => { renderFiles(); updateStats(); updateStorage(); });
   }
 }
 
@@ -1879,7 +1935,7 @@ function uploadFiles(files, forceFolderId) {
       }
     }
 
-    for (const entry of entries) allFiles.unshift(entry);
+    for (const entry of entries) { entry._hasData = !!entry.data; allFiles.unshift(entry); }
     hideProgress();
     document.getElementById('file-input').value = '';
     renderFiles(); updateStats(); updateStorage();
@@ -1897,7 +1953,7 @@ function uploadFiles(files, forceFolderId) {
   })();
 }
 
-// Obtener URL descargable de un archivo
+// Obtener URL descargable — carga data on-demand si fue omitida en la carga inicial
 async function getFileDataURL(f){
   if(f.isRef){
     const fileObj = _fileRefs[f.id];
@@ -1908,12 +1964,19 @@ async function getFileDataURL(f){
     }
     return URL.createObjectURL(fileObj);
   }
+  // Si data no está en memoria pero existe en DB, cargarlo ahora
+  if(!f.data && f._hasData && !window._useLocalStorageFallback){
+    try {
+      const data = await dbGetFileData(f.id);
+      if(data) f.data = data;
+    } catch(e){ console.warn('getFileDataURL: no se pudo recuperar data', e); }
+  }
   if(f.encrypted && f.data && f.data.startsWith('ELITE_ENC:')) {
     try { return await decryptFileData(f.data); }
     catch(e) { showToast('❌ No se pudo descifrar el archivo','error'); return null; }
   }
   if(!f.data && f.url) return f.url;
-  return f.data;
+  return f.data || null;
 }
 
 async function deleteFile(id) {
@@ -2079,22 +2142,47 @@ function renderFiles(append) {
     } else {
       const encBadge = f.encrypted ? '<span class="fc-encrypted-badge">🔐</span>' : '';
       // Si es imagen, creamos el img por DOM para evitar crash con data URLs grandes en innerHTML
-      if (f.type === 'image' && (f.data || f.url || f.isRef)) {
+      if (f.type === 'image' && (f.data || f.url || f.isRef || f._hasData)) {
         card.innerHTML = `${encBadge}<div class="fc-name" title="${sanitize(f.name)}">${sanitize(f.name)}</div><div class="fc-meta">${formatSize(f.size)} · ${formatDate(f.date)}</div><div class="fc-actions"><button class="fc-share-btn" onclick="event.stopPropagation();openShareModal('${f.id}')" title="Compartir">🔗</button><button class="fc-share-btn" onclick="event.stopPropagation();openAssignFolderModal('${f.id}')" title="Mover a carpeta">📁</button><button class="fc-action-btn dl" onclick="event.stopPropagation();downloadFile('${f.id}')" title="Descargar">⬇️</button><button class="fc-action-btn" onclick="event.stopPropagation();deleteFile('${f.id}')" title="Eliminar">🗑️</button></div>`;
-        // Insertar imagen al principio via DOM (evita crash con data URLs enormes en innerHTML)
+        // Crear imagen lazy — src se asigna solo cuando entra al viewport (IntersectionObserver)
         const imgEl = document.createElement('img');
-        imgEl.style.cssText = 'width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;';
+        imgEl.style.cssText = 'width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:10px;display:block;background:#1a1b20;';
         imgEl.loading = 'lazy';
         imgEl.alt = sanitize(f.name);
         imgEl.onerror = () => { imgEl.style.display='none'; };
-        // Asignar src via propiedad para evitar problemas de innerHTML
-        if (f.isRef && _fileRefs && _fileRefs[f.id]) {
-          imgEl.src = URL.createObjectURL(_fileRefs[f.id]);
-        } else if (f.data) {
-          imgEl.src = f.data;
-        } else if (f.url) {
-          imgEl.src = f.url;
+
+        // Asignar src de forma diferida para no bloquear el hilo principal
+        const assignSrc = async () => {
+          try {
+            if (f.isRef && _fileRefs && _fileRefs[f.id]) {
+              imgEl.src = URL.createObjectURL(_fileRefs[f.id]);
+            } else if (f.data) {
+              imgEl.src = f.data;
+            } else if (f.url) {
+              imgEl.src = f.url;
+            } else if (f._hasData) {
+              // Carga on-demand desde IndexedDB sin bloquear
+              const data = await dbGetFileData(f.id).catch(() => null);
+              if (data) { f.data = data; imgEl.src = data; }
+              else imgEl.style.display = 'none';
+            }
+          } catch(e) { imgEl.style.display = 'none'; }
+        };
+
+        // Usar IntersectionObserver para cargar solo cuando la tarjeta es visible
+        if ('IntersectionObserver' in window) {
+          const obs = new IntersectionObserver((entries, observer) => {
+            if (entries[0].isIntersecting) {
+              observer.disconnect();
+              assignSrc();
+            }
+          }, { rootMargin: '200px' });
+          obs.observe(imgEl);
+        } else {
+          // Fallback: cargar con pequeño delay para no bloquear paint inicial
+          setTimeout(assignSrc, 50 + Math.random() * 100);
         }
+
         card.insertBefore(imgEl, card.firstChild);
       } else {
         const iconContent = `<span class="fc-icon">${getFileIcon(f.type, f.name)}</span>`;
