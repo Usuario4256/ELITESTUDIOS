@@ -1264,17 +1264,23 @@ function dbGetFile(id) {
   }));
 }
 
-// ── Escritura masiva: UNA sola transacción para N archivos ────────────
+// ── Escritura masiva: en lotes de 20 para no bloquear IDB en móvil ────────────
 function dbPutFileBatch(fileObjs) {
   if (!fileObjs || !fileObjs.length) return Promise.resolve();
-  return openDB().then(db => new Promise((res, rej) => {
-    const tx = db.transaction('files', 'readwrite');
-    const store = tx.objectStore('files');
-    fileObjs.forEach(f => store.put(f));
-    tx.oncomplete = () => res();
-    tx.onerror    = e  => rej(e.target.error);
-    tx.onabort    = e  => rej(e.target.error);
-  }));
+  // Procesar en lotes de 20 para no bloquear el hilo en móvil
+  const CHUNK = 20;
+  const chunks = [];
+  for (let i = 0; i < fileObjs.length; i += CHUNK) chunks.push(fileObjs.slice(i, i + CHUNK));
+  return chunks.reduce((p, chunk) => p.then(() => new Promise((res, rej) => {
+    openDB().then(db => {
+      const tx = db.transaction('files', 'readwrite');
+      const store = tx.objectStore('files');
+      chunk.forEach(f => store.put(f));
+      tx.oncomplete = () => res();
+      tx.onerror    = e  => rej(e.target.error);
+      tx.onabort    = e  => rej(e.target.error || new Error('Transaction aborted'));
+    }).catch(rej);
+  })), Promise.resolve());
 }
 function dbGetAllFiles(email) {
   return openDB().then(db => new Promise((res, rej) => {
@@ -1840,12 +1846,12 @@ async function loadFiles() {
     const grid = document.getElementById('file-grid');
     if (grid) grid.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;"><div style="font-size:32px;margin-bottom:8px;animation:spin 1s linear infinite;display:inline-block;">⏳</div><br>Cargando archivos...</div>';
 
-    // Timeout global: si todo falla o cuelga, mostramos vacío en 10s
+    // Timeout global: si todo falla o cuelga, mostramos vacío en 12s
     const loadTimeout = setTimeout(() => {
       console.warn('loadFiles: timeout global, forzando render vacío');
       if (grid) grid.innerHTML = '';
       requestAnimationFrame(() => { renderFiles(); updateStats(); updateStorage(); });
-    }, 10000);
+    }, 12000);
 
     if (window._useLocalStorageFallback) {
       try {
@@ -1867,6 +1873,8 @@ async function loadFiles() {
     }
 
     clearTimeout(loadTimeout);
+
+    // Renderizar en el siguiente frame para no bloquear el hilo de pintado
     requestAnimationFrame(() => {
       renderFiles(); updateStats(); updateStorage();
     });
@@ -1924,94 +1932,117 @@ function dragLeave(e){document.getElementById('drop-zone').classList.remove('dra
 // Para archivos muy grandes (ISO, etc.) guardamos la referencia File en memoria
 // IndexedDB solo guarda metadatos; el File nativo del navegador se mantiene en _fileRefs
 const _fileRefs = {}; // id -> File object (solo en sesión, no persiste)
-const LARGE_FILE_THRESHOLD = 500 * 1024 * 1024; // 500MB
+// En móvil usamos un umbral mucho menor para evitar OOM: 50MB en Android, 500MB en escritorio
+const _isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const LARGE_FILE_THRESHOLD = _isMobileDevice ? 50 * 1024 * 1024 : 500 * 1024 * 1024;
 
 function uploadFiles(files, forceFolderId) {
   if (!files.length) return;
   const activeFolderId = forceFolderId || (currentFilter.startsWith('folder_') ? currentFilter.slice(7) : null);
   const list = Array.from(files);
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
   showProgress('(0/' + list.length + ') Preparando...');
+  updateProgress(0, 'Preparando...');
 
   (async () => {
-    const READ_BATCH = 10;
-    const entries = [];
-    let readDone = 0;
-
-    for (let i = 0; i < list.length; i += READ_BATCH) {
-      const batch = list.slice(i, i + READ_BATCH);
-      const results = await Promise.allSettled(
-        batch.map(file => new Promise(resolve => {
-          if (file.size > LARGE_FILE_THRESHOLD) {
-            const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
-            const entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: null, isRef: true };
-            if (activeFolderId) entry.folderId = activeFolderId;
-            _fileRefs[id] = file;
-            resolve(entry);
-          } else {
-            const r = new FileReader();
-            r.onload = async e => {
-              let dataResult = e.target.result;
-              const entryId = Date.now().toString(36) + Math.random().toString(36).slice(2);
-              // Aplicar cifrado si está activado
-              let encrypted = false;
-              if (encryptMode && hasCryptoSubtle && dataResult) {
-                try { dataResult = await encryptFileData(dataResult); encrypted = true; } catch(_) {}
-              }
-              const entry = { id: entryId, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: dataResult };
-              if (encrypted) entry.encrypted = true;
-              if (activeFolderId) entry.folderId = activeFolderId;
-              resolve(entry);
-            };
-            r.onerror = () => resolve(null);
-            r.readAsDataURL(file);
-          }
-        }))
-      );
-      for (const r of results) if (r.status === 'fulfilled' && r.value) entries.push(r.value);
-      readDone += batch.length;
-      showProgress('(' + readDone + '/' + list.length + ') Leyendo...');
-      await new Promise(r => setTimeout(r, 0));
-    }
-
-    showProgress('Guardando ' + entries.length + ' archivo(s)...');
-    updateProgress(10, 'Guardando...');
     let saved = 0, failed = 0;
 
-    if (window._useLocalStorageFallback) {
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i];
+      const pct = Math.round((i / list.length) * 90);
+      updateProgress(pct, '(' + (i + 1) + '/' + list.length + ') ' + file.name);
+
       try {
-        const key = 'elite_files_' + currentUser.email;
-        const existing = JSON.parse(localStorage.getItem(key) || '[]');
-        localStorage.setItem(key, JSON.stringify([...entries, ...existing]));
-        saved = entries.length;
-      } catch (e) { failed = entries.length; }
-    } else {
-      try {
-        await dbPutFileBatch(entries);
-        saved = entries.length;
-      } catch (e) {
-        for (const entry of entries) {
-          const ok = await saveFile(entry).catch(() => false);
-          if (ok) saved++; else failed++;
+        let entry;
+
+        if (file.size > LARGE_FILE_THRESHOLD) {
+          // Archivo grande: solo guardar referencia en memoria, no leer a base64
+          const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+          entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: null, isRef: true };
+          if (activeFolderId) entry.folderId = activeFolderId;
+          _fileRefs[id] = file;
+        } else {
+          // Leer archivo como dataURL — de a UNO para no acumular RAM
+          const dataResult = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = e => res(e.target.result);
+            r.onerror = () => rej(new Error('FileReader error'));
+            r.readAsDataURL(file);
+          });
+
+          // Aplicar cifrado si está activado
+          let finalData = dataResult;
+          let encrypted = false;
+          if (encryptMode && hasCryptoSubtle && finalData) {
+            try { finalData = await encryptFileData(finalData); encrypted = true; } catch(_) {}
+          }
+
+          const id = Date.now().toString(36) + Math.random().toString(36).slice(2) + i;
+          entry = { id, email: currentUser.email, name: sanitize(file.name), type: getFileType(file.name), size: file.size, date: Date.now(), data: finalData };
+          if (encrypted) entry.encrypted = true;
+          if (activeFolderId) entry.folderId = activeFolderId;
+        }
+
+        // Guardar inmediatamente en IndexedDB y luego descartar data de RAM
+        let ok = false;
+        if (window._useLocalStorageFallback) {
+          try {
+            const key = 'elite_files_' + currentUser.email;
+            const existing = JSON.parse(localStorage.getItem(key) || '[]');
+            existing.unshift({ ...entry, email: currentUser.email });
+            localStorage.setItem(key, JSON.stringify(existing));
+            ok = true;
+          } catch(e) { ok = false; }
+        } else {
+          try {
+            await dbPutFile({ ...entry, email: currentUser.email });
+            ok = true;
+          } catch(e) { ok = false; }
+        }
+
+        if (ok) {
+          // Solo mantener metadatos en allFiles, no el data completo (ahorra RAM)
+          const meta = { ...entry };
+          if (meta.data) { meta._hasData = true; delete meta.data; }
+          allFiles.unshift(meta);
+          saved++;
+        } else {
+          failed++;
+        }
+
+        // En móvil ceder el hilo más tiempo para que el GC actúe entre archivos
+        await new Promise(r => setTimeout(r, isMobile ? 80 : 10));
+
+        // Actualizar UI cada 5 archivos o al final
+        if ((i + 1) % 5 === 0 || i === list.length - 1) {
+          renderFiles(); updateStats(); updateStorage();
+        }
+
+      } catch(fileErr) {
+        console.warn('uploadFiles: error con archivo', file.name, fileErr);
+        failed++;
+      }
+    }
+
+    updateProgress(100, '¡Completado!');
+    setTimeout(() => {
+      hideProgress();
+      document.getElementById('file-input').value = '';
+      if (document.getElementById('folder-file-input')) document.getElementById('folder-file-input').value = '';
+      renderFiles(); updateStats(); updateStorage();
+
+      if (saved > 0) {
+        const folderName = activeFolderId ? (getFolders().find(f => f.id === activeFolderId) || {}).name : null;
+        showToast('✅ ' + saved + ' archivo(s) guardado(s)' + (folderName ? ' en "' + folderName + '"' : ''), 'success');
+        if (activeFolderId) {
+          const count = allFiles.filter(f => f.folderId === activeFolderId).length;
+          const el = document.getElementById('folder-banner-count');
+          if (el) el.textContent = count + ' archivo(s) en esta carpeta · Los archivos que subas irán directo aquí';
         }
       }
-    }
-
-    for (const entry of entries) { entry._hasData = !!entry.data; allFiles.unshift(entry); }
-    updateProgress(95, 'Actualizando vista...');
-    hideProgress();
-    document.getElementById('file-input').value = '';
-    renderFiles(); updateStats(); updateStorage();
-
-    if (saved > 0) {
-      const folderName = activeFolderId ? (getFolders().find(f => f.id === activeFolderId) || {}).name : null;
-      showToast('✅ ' + saved + ' archivo(s) guardado(s)' + (folderName ? ' en "' + folderName + '"' : ''), 'success');
-      if (activeFolderId) {
-        const count = allFiles.filter(f => f.folderId === activeFolderId).length;
-        const el = document.getElementById('folder-banner-count');
-        if (el) el.textContent = count + ' archivo(s) en esta carpeta · Los archivos que subas irán directo aquí';
-      }
-    }
-    if (failed > 0) showToast('❌ ' + failed + ' archivo(s) fallaron al guardarse', 'error');
+      if (failed > 0) showToast('❌ ' + failed + ' archivo(s) fallaron al guardarse', 'error');
+    }, 400);
   })();
 }
 
@@ -2164,7 +2195,7 @@ function filterType(type,el){
 }
 
 let _renderPage = 0;
-const _PAGE_SIZE = 80;
+const _PAGE_SIZE = _isMobileDevice ? 30 : 80;
 
 function renderFiles(append) {
   const grid = document.getElementById('file-grid');
@@ -2613,8 +2644,8 @@ async function decompressFile(id) {
     _updateUnzipProgress(0, files.length, 'Extrayendo...');
 
     // En móvil procesamos de 1 en 1 para no acumular memoria.
-    // En escritorio usamos lotes de 10 para mayor velocidad.
-    const EXTRACT_BATCH = isMobile ? 1 : 10;
+    // En escritorio usamos lotes de 5 para mayor velocidad.
+    const EXTRACT_BATCH = isMobile ? 1 : 5;
 
     let imported = 0, failed = 0, done = 0;
 
@@ -2689,11 +2720,11 @@ async function decompressFile(id) {
       }
 
       // Ceder el hilo al navegador entre cada lote.
-      // En móvil damos más tiempo (100ms) para que el GC pueda actuar.
-      await new Promise(r => setTimeout(r, isMobile ? 100 : 5));
+      // En móvil damos más tiempo (150ms) para que el GC pueda actuar.
+      await new Promise(r => setTimeout(r, isMobile ? 150 : 5));
 
-      // Actualizar la UI cada 10 archivos para que el usuario vea el progreso
-      if (done % 10 === 0 || done === files.length) {
+      // Actualizar la UI cada 5 archivos (móvil: cada 3) para que el usuario vea el progreso
+      if (done % (isMobile ? 3 : 5) === 0 || done === files.length) {
         renderFiles(); updateStats();
       }
     }
